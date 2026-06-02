@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Faith Technology - 大区商核心管理中心</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at top, #0d1630 0%, #050816 45%, #02040d 100%);
+            color: #fff; overflow-x: hidden; min-height: 100vh; display: flex;
+        }
+        body::before {
+            content: ''; position: fixed; inset: 0;
+            background: linear-gradient(rgba(0, 255, 255, 0.02) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(0, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 40px 40px; pointer-events: none; z-index: -1;
+        }
+
+        /* 侧边栏样式 */
+        .sidebar {
+            width: 260px; background: rgba(5, 9, 26, 0.9); border-right: 1px solid rgba(0, 255, 255, 0.2);
+            backdrop-filter: blur(20px); position: fixed; top: 0; bottom: 0; left: 0; z-index: 100;
+            padding: 30px 20px; display: flex; flex-direction: column; box-shadow: 5px 0 30px rgba(0,0,0,0.7);
+        }
+        .sidebar-brand { margin-bottom: 40px; padding-left: 10px; }
+        .sidebar-brand h2 { font-size: 19px; font-weight: 800; background: linear-gradient(90deg, #fff, #00ffff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 1px; }
+        .sidebar-brand p { font-size: 9px; color: rgba(0, 255, 255, 0.5); letter-spacing: 1px; margin-top: 4px; }
+        .sidebar-menu { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+        .menu-item { display: flex; align-items: center; padding: 14px 16px; color: rgba(255, 255, 255, 0.6); font-size: 14px; font-weight: 500; text-decoration: none; border-radius: 10px; cursor: pointer; transition: all 0.3s ease; border: 1px solid transparent; }
+        .menu-item:hover { color: #00ffff; background: rgba(0, 255, 255, 0.05); border-color: rgba(0, 255, 255, 0.1); }
+        .menu-item.active { color: #05091a; background: linear-gradient(90deg, #00ffff, #00ffa2); font-weight: 700; box-shadow: 0 0 15px rgba(0, 255, 255, 0.3); }
+        .menu-item .icon { margin-right: 12px; font-size: 16px; }
+
+        /* 主内容区样式 */
+        .main-content { margin-left: 260px; flex: 1; padding: 25px 30px; display: flex; flex-direction: column; }
+        .panel { background: rgba(7, 12, 36, 0.75); border: 1px solid rgba(0, 255, 255, 0.15); backdrop-filter: blur(20px); border-radius: 20px; padding: 24px; margin-bottom: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
+        .header { display: flex; justify-content: space-between; align-items: flex-end; padding: 0 10px 25px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 25px; }
+        .header-title h1 { font-size: 24px; font-weight: 800; color: #fff; }
+        .header-title p { font-size: 11px; color: #00ffff; letter-spacing: 2px; margin-top: 4px; }
+        .header-info { text-align: right; color: #00ffa2; font-size: 13px; font-weight: 600; }
+        
+        .user-profile { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; justify-content: flex-end; }
+        .user-avatar { width: 8px; height: 8px; background-color: #00ffff; border-radius: 50%; box-shadow: 0 0 8px #00ffff; }
+        .user-name { color: #fff; font-weight: 700; }
+        .back-btn { color: rgba(255, 255, 255, 0.4); font-size: 12px; text-decoration: none; margin-left: 12px; padding: 3px 8px; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; transition: 0.2s; }
+        .back-btn:hover { color: #fff; background: rgba(255,255,255,0.1); border-color: #fff; }
+
+        .section-header { margin-bottom: 20px; border-left: 4px solid #00ffff; padding-left: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .section-header h2 { font-size: 17px; font-weight: 700; }
+        
+        /* 统计看板卡片布局 */
+        .summary-grid { display: flex; flex-direction: column; gap: 15px; }
+        .summary-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+        .summary-row.quad { grid-template-columns: repeat(4, 1fr); }
+        
+        .metric-card { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 16px; border-left: 4px solid #444; }
+        .metric-label { font-size: 11px; color: rgba(255,255,255,0.4); margin-bottom: 6px; }
+        .metric-value { font-size: 19px; font-weight: 800; }
+        .metric-value span { font-size: 11px; font-weight: 400; opacity: 0.5; margin-left: 4px; }
+        
+        .row-pv .metric-card { border-left-color: #00ffa2; color: #00ffa2; }
+        .row-usage .metric-card { border-left-color: #00ffff; color: #00ffff; }
+
+        /* 表格样式 */
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 12px 14px; font-size: 13px; color: rgba(255,255,255,0.4); border-bottom: 1px solid rgba(0, 255, 255, 0.15); background: rgba(0, 255, 255, 0.01); }
+        td { padding: 12px 14px; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.04); color: #ddd; }
+        tr:hover td { background: rgba(0, 255, 255, 0.03); }
+        
+        .page-section { display: none; }
+        .page-section.active { display: block; }
+        .level-badge { padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+
+        /* 筛选高亮条 */
+        .filter-status-bar { background: rgba(0, 255, 255, 0.06); border: 1px dashed rgba(0, 255, 255, 0.3); border-radius: 8px; padding: 8px 14px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+        .clear-filter-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+        .clear-filter-btn:hover { background: rgba(255, 51, 102, 0.2); border-color: #ff3366; color: #ff3366; }
+
+        /* 租赁下发窗口表单样式 */
+        .lease-form-box { display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; background: rgba(0, 255, 255, 0.03); border: 1px dashed rgba(0, 255, 255, 0.2); padding: 18px; border-radius: 12px; margin-bottom: 25px; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 180px; }
+        .form-group label { font-size: 12px; color: rgba(255,255,255,0.5); font-weight: 500; }
+        .form-control { background: #070c24; border: 1px solid rgba(0,255,255,0.2); border-radius: 6px; padding: 10px 12px; color: #fff; font-size: 13px; font-family: inherit; outline: none; transition: 0.2s; }
+        .form-control:focus { border-color: #00ffff; box-shadow: 0 0 8px rgba(0,255,255,0.2); }
+        .form-control:disabled { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.05); color: rgba(255,255,255,0.3); cursor: not-allowed; box-shadow: none; }
+        .lease-btn { background: linear-gradient(90deg, #00ffff, #00ffa2); border: none; color: #05091a; padding: 11px 24px; font-size: 13px; font-weight: 700; border-radius: 6px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 15px rgba(0,255,255,0.2); height: 40px; }
+        .lease-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,255,255,0.4); }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <h2>DEALER PANEL</h2>
+            <p>渠道资产控制大屏 V2.8</p>
+        </div>
+        <ul class="sidebar-menu">
+            <li class="menu-item active" onclick="switchTab('overview', this)"><span class="icon">📈</span>大区总览</li>
+            <li class="menu-item" onclick="switchTab('subdealers', this)"><span class="icon">👥</span>下辖二级网点</li>
+            <li class="menu-item" onclick="switchTab('devices', this)"><span class="icon">📦</span>设备列表</li>
+            <li class="menu-item" onclick="switchTab('geofence', this)"><span class="icon">🚧</span>地理围栏</li>
+            <li class="menu-item" onclick="switchTab('leasing', this)"><span class="icon">🔑</span>租赁管理</li>
+            <li class="menu-item" onclick="switchTab('finance', this)"><span class="icon">💰</span>财务管理</li>
+            <li class="menu-item" onclick="switchTab('carbon', this)"><span class="icon">🌱</span>碳减排面板</li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        
+        <div class="header">
+            <div class="header-title">
+                <h1 id="pageTitle">网点用电资产总览</h1>
+                <p id="dealerName">加载中...</p>
+            </div>
+            <div class="header-info">
+                <div class="user-profile">
+                    <span class="user-avatar"></span>
+                    <span class="user-name" id="dealerAccount">ACCOUNT: --</span>
+                    <a class="back-btn" href="index.html">返回总台</a>
+                </div>
+                <div id="dealerLocation">大区物理归属: --</div>
+                <div id="scopeDisplay" style="color:rgba(0, 255, 255, 0.9); font-weight:600;">资产闭锁范围: 全大区合并数据</div>
+            </div>
+        </div>
+
+        <div id="filterNotification" style="display: none;"></div>
+
+        <div id="sec-overview" class="page-section active">
+            <div class="panel">
+                <div class="section-header"><h2>大区级微电网实时/累计微电网数据模块</h2></div>
+                <div class="summary-grid" id="statsContainer"></div>
+            </div>
+
+            <div class="panel">
+                <div class="section-header"><h2>核心财务与绿色资产指标摘要</h2></div>
+                <div class="summary-grid">
+                    <div class="summary-row quad">
+                        <div class="metric-card" style="border-left-color: #f1c40f; color: #f1c40f;">
+                            <div class="metric-label">实收租金总池</div>
+                            <div class="metric-value" id="o-finance">$ 0.00<span>USD</span></div>
+                        </div>
+                        <div class="metric-card" style="border-left-color: #2ecc71; color: #2ecc71;">
+                            <div class="metric-label">今日放电碳减排</div>
+                            <div class="metric-value" id="o-carbon-day">0.0000<span>Tons</span></div>
+                        </div>
+                        <div class="metric-card" style="border-left-color: #00ffff; color: #00ffff;">
+                            <div class="metric-label">累计放电碳减排</div>
+                            <div class="metric-value" id="o-carbon-total">0.00<span>Tons</span></div>
+                        </div>
+                        <div class="metric-card" style="border-left-color: #ff3366; color: #ff3366;">
+                            <div class="metric-label">当前范围内受控运行资产</div>
+                            <div class="metric-value" id="o-device-count">42<span>UNITS</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="sec-subdealers" class="page-section">
+            <div class="panel">
+                <div class="section-header"><h2>大区管辖下的二级加盟商网络</h2></div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>网点级别</th>
+                            <th>网点名称</th>
+                            <th>管理账号</th>
+                            <th>覆盖地理位置</th>
+                            <th>在籍设备数量</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="subDealerTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="sec-devices" class="page-section">
+            <div class="panel">
+                <div class="section-header"><h2>受控资产设备全量明细总表</h2></div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>设备名称</th>
+                            <th>产品编号 (SN)</th>
+                            <th>分配卡种</th>
+                            <th>部署位置</th>
+                            <th>运行状态</th>
+                            <th>电池电量 (SOC)</th>
+                            <th>电芯健康度 (SOH)</th>
+                            <th>动作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="deviceTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="sec-geofence" class="page-section">
+            <div class="panel">
+                <div class="section-header"><h2>安全资产围栏防盗追踪</h2></div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>设备名称</th>
+                            <th>产品编号 (SN)</th>
+                            <th>部署所属区域</th>
+                            <th>实时高精经度</th>
+                            <th>实时高精纬度</th>
+                            <th>安全围栏状态</th>
+                        </tr>
+                    </thead>
+                    <tbody id="geofenceTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="sec-leasing" class="page-section">
+            <div class="panel">
+                <div class="section-header"><h2>智能云硬件分发与租赁业务增发窗口</h2></div>
+                <div class="lease-form-box">
+                    <div class="form-group">
+                        <label>选择部署终端 (受控SN列表)</label>
+                        <select id="leaseSelectSn" class="form-control" onchange="syncLeaseName()"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>系统识别设备名称</label>
+                        <input type="text" id="leaseDeviceName" class="form-control" placeholder="请输入设备名称" value="" />
+                    </div>
+                    <div class="form-group">
+                        <label>新增/变更部署地理区域</label>
+                        <input type="text" id="leaseNewLoc" class="form-control" placeholder="仅在选择“无”时允许编辑" value="" />
+                    </div>
+                    <div class="form-group">
+                        <label>下发租赁卡种 (PAYG 智能合约规格)</label>
+                        <select id="leaseCardType" class="form-control">
+                            <option value="Monthly">Monthly (月卡智能锁合约)</option>
+                            <option value="Quarterly">Quarterly (季卡智能锁合约)</option>
+                            <option value="Yearly">Yearly (年卡智能锁合约)</option>
+                        </select>
+                    </div>
+                    <button class="lease-btn" onclick="executeLeaseDispatch()">🚀 授权下发智能卡</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="section-header"><h2>PAYG 智能合约租赁到期清算矩阵</h2></div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>设备名称</th>
+                            <th>产品编号 (SN)</th>
+                            <th>绑定合约卡种</th>
+                            <th>租金实收流水</th>
+                            <th>到期计费剩余时间</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leasingTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="sec-finance" class="page-section">
+            <div class="panel" style="background: rgba(5,9,26,0.5); margin-bottom: 20px;">
+                <div class="summary-grid">
+                    <div class="summary-row quad row-finance">
+                        <div class="metric-card" style="border-left-color: #f1c40f; color: #f1c40f;"><div class="metric-label">核算在籍设备基数</div><div class="metric-value" id="f-card-count">0<span>UNITS</span></div></div>
+                        <div class="metric-card" style="border-left-color: #f1c40f; color: #f1c40f;"><div class="metric-label">合并入账总额 (CNY)</div><div class="metric-value" id="f-card-cny">￥ 0.00<span>元</span></div></div>
+                        <div class="metric-card" style="border-left-color: #f1c40f; color: #f1c40f;"><div class="metric-label">清算兑汇总额 (USD)</div><div class="metric-value" id="f-card-usd">$ 0.00<span>美金</span></div></div>
+                        <div class="metric-card" style="border-left-color: #f1c40f; color: #f1c40f;"><div class="metric-label">大区支付网关运行状态</div><div class="metric-value" style="color:#00ffa2;">ONLINE<span>NORMAL</span></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="section-header"><h2>单机账目营收细则 (基于国际美金清算)</h2></div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>账目绑定设备</th>
+                            <th>产品编号 (SN)</th>
+                            <th>实收流水金额 (CNY)</th>
+                            <th>折算国际美金 (USD)</th>
+                            <th>清算网关状态</th>
+                        </tr>
+                    </thead>
+                    <tbody id="financeTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="sec-carbon" class="page-section">
+            <div class="panel">
+                <div class="section-header"><h2>绿色能源减排追踪面板 (放电量测算标准：1000度电 = 0.6吨碳减排)</h2></div>
+                <div class="summary-grid" style="margin-bottom: 20px;">
+                    <div class="summary-row quad row-carbon" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
+                        <div class="metric-card" style="border-left-color: #2ecc71; color: #2ecc71;"><div class="metric-label">受控范围今日总放电量</div><div class="metric-value" id="c-load-day">0.00<span>kWh</span></div></div>
+                        <div class="metric-card" style="border-left-color: #2ecc71; color: #2ecc71;"><div class="metric-label">受控范围今日碳减排量</div><div class="metric-value" id="c-carbon-day">0.0000<span>Tons</span></div></div>
+                        <div class="metric-card" style="border-left-color: #2ecc71; color: #2ecc71;"><div class="metric-label">受控范围月累计碳减排</div><div class="metric-value" id="c-carbon-mon">0.00<span>Tons</span></div></div>
+                        <div class="metric-card" style="border-left-color: #2ecc71; color: #2ecc71;"><div class="metric-label">受控范围历史总碳减排</div><div class="metric-value" id="c-carbon-total">0.00<span>Tons</span></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="section-header"><h2>终端单机放电碳减排联动审计明细 (数字锁定小数点后两位)</h2></div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>设备名称</th>
+                            <th>产品编号 (SN)</th>
+                            <th>单机今日放电量</th>
+                            <th>今日碳减排 (高精)</th>
+                            <th>月度放电量</th>
+                            <th>月度碳减排</th>
+                        </tr>
+                    </thead>
+                    <tbody id="carbonTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="db.js"></script>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        let masterDealerId = params.get('id') || 'M001'; 
+
+        const currentMaster = DealerDB.find(o => o.id === masterDealerId);
+        let selectedSubDealerId = null; 
+
+        // Tab 页签控制
+        let currentTab = 'overview';
+        function switchTab(targetTabId, menuElement) {
+            currentTab = targetTabId;
+            document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
+            menuElement.classList.add('active');
+            document.querySelectorAll('.page-section').forEach(sec => sec.classList.remove('active'));
+
+            const targetSection = document.getElementById(`sec-${targetTabId}`);
+            if (targetSection) targetSection.classList.add('active');
+
+            const titleMap = {
+                'overview': '网点用电资产总览',
+                'subdealers': '下辖二级网点网格',
+                'devices': '网点受控全量设备列表',
+                'geofence': '高精地理围栏安全追踪',
+                'leasing': 'PAYG 智能合约租赁控制面板',
+                'finance': '大区合并财务账目审计大屏',
+                'carbon': '清洁电力绿色碳减排追踪看板'
+            };
+            document.getElementById('pageTitle').innerText = titleMap[targetTabId] || '资产管理中心';
+        }
+
+        function filterBySubDealer(subId) {
+            selectedSubDealerId = subId;
+            renderDynamicDashboard(); 
+            const overviewMenuOpt = document.querySelector('.sidebar-menu .menu-item');
+            switchTab('overview', overviewMenuOpt);
+        }
+
+        function clearSubFilter() {
+            selectedSubDealerId = null;
+            renderDynamicDashboard();
+        }
+
+        // 精准状态机：根据终端下拉框的选中值动态控制各个窗口的输入亮起/暗淡状态
+        function syncLeaseName() {
+            const selectEl = document.getElementById('leaseSelectSn');
+            const targetSn = selectEl.value;
+            const locInput = document.getElementById('leaseNewLoc');
+            const nameInput = document.getElementById('leaseDeviceName');
+
+            if (targetSn === "NONE") {
+                nameInput.disabled = false;
+                locInput.disabled = false;
+                nameInput.value = "";
+                locInput.value = "";
+                nameInput.placeholder = "请输入新资产的设备名称";
+                locInput.placeholder = "请输入新资产落地部署的地理区域";
+            } else {
+                nameInput.disabled = false;
+                locInput.disabled = true;
+                
+                const childDealerIds = DealerDB.filter(o => o.parentId === masterDealerId).map(o => o.id);
+                const allDevices = DeviceDB.filter(d => d.belongDealerId === masterDealerId || childDealerIds.includes(d.belongDealerId));
+                const found = allDevices.find(d => d.sn === targetSn);
+                
+                if (found) {
+                    nameInput.value = found.name;
+                    locInput.value = found.loc;
+                }
+            }
+        }
+
+        // 智能下发派单逻辑
+        function executeLeaseDispatch() {
+            const selectSn = document.getElementById('leaseSelectSn').value;
+            const cardType = document.getElementById('leaseCardType').value;
+            const devName = document.getElementById('leaseDeviceName').value.trim();
+            const newLoc = document.getElementById('leaseNewLoc').value.trim();
+
+            if (!devName) { alert("识别设备名称不能为空！"); return; }
+            if (!newLoc) { alert("部署物理位置大区不能为空！"); return; }
+
+            if (selectSn === "NONE") {
+                const mockNewSn = "SN-FT-" + Math.floor(100000 + Math.random() * 900000);
+                const newDeviceObj = {
+                    name: devName,
+                    sn: mockNewSn,
+                    leaseType: cardType,
+                    loc: newLoc,
+                    belongDealerId: selectedSubDealerId ? selectedSubDealerId : masterDealerId,
+                    pv_in: 400, pv_day: 5.5, pv_mon: 130, pv_yr: 1.5,
+                    ac_p: 300, load_day: 4.8, load_mon: 115, load_yr: 1.3,
+                    soc: 90, soh: 99, feePaid: cardType === 'Monthly' ? "350" : (cardType === 'Quarterly' ? "950" : "3200"),
+                    lng: 8.65, lat: 12.11,
+                    leaseRemain: cardType === 'Monthly' ? '28 Days left' : (cardType === 'Quarterly' ? '89 Days left' : '364 Days left')
+                };
+                DeviceDB.push(newDeviceObj);
+                alert(`[Faith Tech 全球分发完成]\n已虚拟向指定离网区域派发新机。\n分配系统SN编码：${mockNewSn}\n落地区域：【${newLoc}】\n首发解锁卡：${cardType}`);
+            } else {
+                const foundInDb = DeviceDB.find(d => d.sn === selectSn);
+                if (foundInDb) {
+                    foundInDb.name = devName; 
+                    foundInDb.leaseType = cardType;
+                    if (cardType === 'Monthly') foundInDb.leaseRemain = '28 Days left';
+                    else if (cardType === 'Quarterly') foundInDb.leaseRemain = '89 Days left';
+                    else if (cardType === 'Yearly') foundInDb.leaseRemain = '364 Days left';
+                }
+                alert(`[Faith Tech 既有资产PAYG指令刷新]\n硬件终端：${devName} (${selectSn})\n锁机合约策略成功变更为：${cardType}`);
+            }
+
+            renderDynamicDashboard(); 
+        }
+
+        // 统一渲染核心控制洗涤器
+        function renderDynamicDashboard() {
+            if (!currentMaster) {
+                alert("无合法身份大区大凭证");
+                return;
+            }
+
+            let filteredDevices = [];
+            const childDealerIds = DealerDB.filter(o => o.parentId === masterDealerId).map(o => o.id);
+            const regionAllDevices = DeviceDB.filter(d => d.belongDealerId === masterDealerId || childDealerIds.includes(d.belongDealerId));
+
+            if (selectedSubDealerId) {
+                filteredDevices = DeviceDB.filter(d => d.belongDealerId === selectedSubDealerId);
+                const subInfo = DealerDB.find(o => o.id === selectedSubDealerId);
+                document.getElementById('scopeDisplay').innerText = `已切入网点沙箱: ${subInfo ? subInfo.name : ''} (${filteredDevices.length} UNITS)`;
+                
+                document.getElementById('filterNotification').className = "filter-status-bar";
+                document.getElementById('filterNotification').style.display = "flex";
+                document.getElementById('filterNotification').innerHTML = `
+                    <span>⚡ <strong>当前正处于穿透沙箱视角：</strong>仅呈现二级商【${subInfo ? subInfo.name : ''}】下辖的资产数据</span>
+                    <button class="clear-filter-btn" onclick="clearSubFilter()">解除闭锁·返回大区</button>
+                `;
+            } else {
+                filteredDevices = regionAllDevices;
+                document.getElementById('scopeDisplay').innerText = `全大区资产合并总合 (${filteredDevices.length} UNITS)`;
+                document.getElementById('filterNotification').style.display = "none";
+            }
+
+            const selectEl = document.getElementById('leaseSelectSn');
+            const prevSelectedVal = selectEl.value;
+            let optionsHtml = `<option value="NONE">无（全新硬件出厂分发）</option>`;
+            optionsHtml += regionAllDevices.map(d => `<option value="${d.sn}">${d.sn} [${d.loc}]</option>`).join('');
+            selectEl.innerHTML = optionsHtml;
+            
+            if (prevSelectedVal && (prevSelectedVal === "NONE" || regionAllDevices.some(d => d.sn === prevSelectedVal))) {
+                selectEl.value = prevSelectedVal;
+            } else {
+                selectEl.value = "NONE"; 
+            }
+            syncLeaseName();
+
+            document.getElementById('dealerName').innerText = `${currentMaster.name} / HUB CONTROL`;
+            document.getElementById('dealerAccount').innerText = `ACCOUNT: ${currentMaster.account}`;
+            document.getElementById('dealerLocation').innerText = `大区物理归属: ${currentMaster.loc}`;
+
+            let pvRtSum = 0, pvDaySum = 0, pvMonSum = 0, pvYrSum = 0;
+            let loadRtSum = 0, loadDaySum = 0, loadMonSum = 0, loadYrSum = 0;
+            let totalFinanceCNY = 0, totalFinanceUSD = 0;
+
+            filteredDevices.forEach(d => {
+                pvRtSum += d.pv_in; pvDaySum += d.pv_day; pvMonSum += d.pv_mon; pvYrSum += d.pv_yr;
+                loadRtSum += d.ac_p; loadDaySum += d.load_day; loadMonSum += d.load_mon; loadYrSum += d.load_yr;
+                
+                const cnyFee = parseFloat(d.feePaid);
+                totalFinanceCNY += cnyFee;
+                totalFinanceUSD += (cnyFee / 7.2);
+            });
+
+            const finalPvDay = pvDaySum.toFixed(2);
+            const finalPvMon = pvMonSum.toFixed(2);
+            const finalPvYr = pvYrSum.toFixed(2);
+            const finalPvTotal = (pvYrSum * 1.35).toFixed(2);
+
+            const finalLoadDay = loadDaySum.toFixed(2);
+            const finalLoadMon = loadMonSum.toFixed(2);
+            const finalLoadYr = loadYrSum.toFixed(2);
+            const finalLoadTotal = (loadYrSum * 1.38).toFixed(2);
+
+            const carbonToday = (parseFloat(finalLoadDay) * 0.0006);
+            const carbonMon = (parseFloat(finalLoadMon) * 0.0006);
+            const carbonTotal = (parseFloat(finalLoadTotal) * 1000 * 0.0006);
+
+            document.getElementById('statsContainer').innerHTML = `
+                <div class="summary-row row-pv">
+                    <div class="metric-card"><div class="metric-label">实时PV总输入功率</div><div class="metric-value">${pvRtSum}<span>W</span></div></div>
+                    <div class="metric-card"><div class="metric-label">范围当日累计发电</div><div class="metric-value">${finalPvDay}<span>kWh</span></div></div>
+                    <div class="metric-card"><div class="metric-label">范围当月累计发电</div><div class="metric-value">${finalPvMon}<span>kWh</span></div></div>
+                    <div class="metric-card"><div class="metric-label">范围年度累计发电</div><div class="metric-value">${finalPvYr}<span>MWh</span></div></div>
+                    <div class="metric-card"><div class="metric-label">范围历史合并发电</div><div class="metric-value">${finalPvTotal}<span>MWh</span></div></div>
+                </div>
+                <div class="summary-row row-usage">
+                    <div class="metric-card"><div class="metric-label">实时负载用电总功率</div><div class="metric-value">${loadRtSum}<span>W</span></div></div>
+                    <div class="metric-card"><div class="metric-label">范围当日累计放电</div><div class="metric-value">${finalLoadDay}<span>kWh</span></div></div>
+                    <div class="metric-card"><div class="metric-label">范围当月累计放电</div><div class="metric-value">${finalLoadMon}<span>kWh</span></div></div>
+                    <div class="metric-card"><div class="metric-label">范围年度累计放电</div><div class="metric-value">${finalLoadYr}<span>MWh</span></div></div>
+                    <div class="metric-card"><div class="metric-label">范围历史合并放电</div><div class="metric-value">${finalLoadTotal}<span>MWh</span></div></div>
+                </div>
+            `;
+
+            document.getElementById('o-finance').innerHTML = `$ ${totalFinanceUSD.toFixed(2)}<span>USD</span>`;
+            document.getElementById('o-carbon-day').innerHTML = `${carbonToday.toFixed(4)}<span>Tons</span>`;
+            document.getElementById('o-carbon-total').innerHTML = `${carbonTotal.toFixed(2)}<span>Tons</span>`;
+            document.getElementById('o-device-count').innerText = `${filteredDevices.length} UNITS`;
+
+            document.getElementById('f-card-count').innerHTML = `${filteredDevices.length}<span>UNITS</span>`;
+            document.getElementById('f-card-cny').innerHTML = `￥ ${totalFinanceCNY.toFixed(2)}<span>元</span>`;
+            document.getElementById('f-card-usd').innerHTML = `$ ${totalFinanceUSD.toFixed(2)}<span>美金</span>`;
+
+            const subDealers = DealerDB.filter(o => o.parentId === masterDealerId);
+            document.getElementById('subDealerTableBody').innerHTML = subDealers.map(sd => {
+                const isCurrentActive = selectedSubDealerId === sd.id;
+                return `
+                    <tr style="${isCurrentActive ? 'background: rgba(0, 255, 255, 0.08);' : ''}">
+                        <td><span class="level-badge" style="background:rgba(0,255,255,0.15); color:#00ffff;">加盟二级</span></td>
+                        <td style="font-weight:700; color:#fff;">${sd.name} ${isCurrentActive ? ' <span style="color:#00ffa2">(当前锁死)</span>':''}</td>
+                        <td style="color:#f1c40f; font-family:monospace;">${sd.account}</td>
+                        <td>${sd.loc}</td>
+                        <td style="color:#00ffa2; font-weight:700;">10 UNITS</td>
+                        <td>
+                            ${isCurrentActive ? 
+                                `<button onclick="clearSubFilter()" style="background:rgba(255,51,102,0.15); border:1px solid #ff3366; color:#ff3366; padding:5px 10px; cursor:pointer; border-radius:4px; font-size:11px; font-weight:600;">解开锁死</button>` : 
+                                `<button onclick="filterBySubDealer('${sd.id}')" style="background:rgba(0,255,255,0.1); border:1px solid #00ffff; color:#00ffff; padding:5px 10px; cursor:pointer; border-radius:4px; font-size:11px; font-weight:600;">下钻穿透网点</button>`
+                            }
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            // TAB 3 全量设备表格（已新增【动作】列和跳转按钮钩子）
+            document.getElementById('deviceTableBody').innerHTML = filteredDevices.map(d => `
+                <tr>
+                    <td style="font-weight:700; color:#fff;">${d.name}</td>
+                    <td style="color:#00ffff; font-family:monospace;">${d.sn}</td>
+                    <td><span style="color:#f1c40f; font-size:12px; font-weight:600;">${d.leaseType}</span></td>
+                    <td>${d.loc}</td>
+                    <td><span style="color:#00ffa2">● ONLINE</span></td>
+                    <td style="font-weight:700; color:#00ffff;">${d.soc}%</td>
+                    <td>${d.soh}%</td>
+                    <td>
+                        <button onclick="location.href='device.html?sn=${d.sn}'" style="background:rgba(0,255,255,0.1); border:1px solid #00ffff; color:#00ffff; padding:4px 8px; cursor:pointer; border-radius:4px; font-size:11px; font-weight:600;">
+                            终端详情
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            document.getElementById('geofenceTableBody').innerHTML = filteredDevices.map(d => `
+                <tr>
+                    <td style="font-weight:700; color:#fff;">${d.name}</td>
+                    <td style="color:#00ffff; font-family:monospace;">${d.sn}</td>
+                    <td>${d.loc}区域</td>
+                    <td style="color:#00ffff; font-family:monospace;">${d.lng}° E</td>
+                    <td style="color:#00ffff; font-family:monospace;">${d.lat}° N</td>
+                    <td><span style="background:rgba(0,255,162,0.15); color:#00ffa2; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold;">✔ ACTIVE</span></td>
+                </tr>
+            `).join('');
+
+            document.getElementById('leasingTableBody').innerHTML = filteredDevices.map(d => `
+                <tr>
+                    <td style="font-weight:700; color:#fff;">${d.name}</td>
+                    <td style="color:#00ffff; font-family:monospace;">${d.sn}</td>
+                    <td><span style="border:1px solid rgba(0,255,255,0.4); color:#00ffff; padding:2px 6px; border-radius:4px; font-size:12px;">${d.leaseType}</span></td>
+                    <td style="color:#f1c40f; font-weight:700;">$ ${(parseFloat(d.feePaid)/7.2).toFixed(2)}</td>
+                    <td style="color:#00ffff; font-weight:600;">${d.leaseRemain}</td>
+                </tr>
+            `).join('');
+
+            document.getElementById('financeTableBody').innerHTML = filteredDevices.map(d => `
+                <tr>
+                    <td style="font-weight:700; color:#fff;">${d.name}</td>
+                    <td style="color:#00ffff; font-family:monospace;">${d.sn}</td>
+                    <td style="font-family:monospace;">￥ ${parseFloat(d.feePaid).toFixed(2)}</td>
+                    <td style="color:#f1c40f; font-weight:700; font-family:monospace;">$ ${(parseFloat(d.feePaid)/7.2).toFixed(2)}</td>
+                    <td style="color:#00ffa2; font-size:12px; font-weight:600;">SUCCESS</td>
+                </tr>
+            `).join('');
+
+            document.getElementById('c-load-day').innerHTML = `${finalLoadDay}<span>kWh</span>`;
+            document.getElementById('c-carbon-day').innerHTML = `${carbonToday.toFixed(4)}<span>Tons</span>`;
+            document.getElementById('c-carbon-mon').innerHTML = `${carbonMon.toFixed(2)}<span>Tons</span>`;
+            document.getElementById('c-carbon-total').innerHTML = `${carbonTotal.toFixed(2)}<span>Tons</span>`;
+
+            document.getElementById('carbonTableBody').innerHTML = filteredDevices.map(d => {
+                const sLoadDay = d.load_day;
+                const sLoadMon = d.load_mon;
+                return `
+                    <tr>
+                        <td style="font-weight:700; color:#fff;">${d.name}</td>
+                        <td style="color:#00ffff; font-family:monospace;">${d.sn}</td>
+                        <td style="color:#f1c40f; font-weight:600; font-family:monospace;">${sLoadDay.toFixed(2)} kWh</td>
+                        <td style="color:#00ffa2; font-weight:600; font-family:monospace;">${(sLoadDay * 0.0006).toFixed(5)} Tons</td>
+                        <td style="color:#00ffff; font-family:monospace;">${sLoadMon.toFixed(2)} kWh</td>
+                        <td style="color:#00ffff; font-family:monospace;">${(sLoadMon * 0.0006).toFixed(4)} Tons</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        window.onload = () => renderDynamicDashboard();
+    </script>
+</body>
+</html>

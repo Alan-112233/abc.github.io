@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Faith Technology - Energy Cloud Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at top, #0d1630 0%, #050816 45%, #02040d 100%);
+            color: #fff; overflow-x: hidden; padding: 15px;
+        }
+        body::before {
+            content: ''; position: fixed; inset: 0;
+            background: linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px; pointer-events: none; z-index: -1;
+        }
+        .panel {
+            background: rgba(10, 18, 38, 0.8);
+            border: 1px solid rgba(0, 255, 255, 0.15);
+            backdrop-filter: blur(25px);
+            border-radius: 20px; padding: 20px; position: relative; margin-bottom: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; }
+        .header-left h1 { font-size: 24px; font-weight: 800; background: linear-gradient(90deg, #fff, #00ffff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; cursor: pointer; }
+        .header-left-box { display: flex; align-items: center; gap: 15px; }
+        .back-hub-btn { background: rgba(0, 255, 255, 0.1); border: 1px solid rgba(0, 255, 255, 0.3); color: #00ffff; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; text-decoration: none; }
+        .back-hub-btn:hover { background: #00ffff; color: #050816; box-shadow: 0 0 10px rgba(0,255,255,0.4); }
+        .header-right { text-align: right; }
+        .product-sn { font-size: 13px; color: #00ffff; font-weight: 700; letter-spacing: 1px; margin-bottom: 4px; opacity: 0.8; }
+        .status-badge { padding: 4px 12px; background: rgba(0, 255, 170, 0.1); border: 1px solid #00ffa2; color: #00ffa2; border-radius: 8px; font-size: 11px; font-weight: 600; display: inline-block; }
+        .section-header { margin-bottom: 18px; border-left: 4px solid #00ffff; padding-left: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .section-header h2 { font-size: 17px; font-weight: 700; color: #fff; letter-spacing: 0.5px; }
+        .device-monitor-full { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; }
+        .info-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 12px; text-align: center; }
+        .info-card .label { font-size: 10px; color: rgba(255,255,255,0.4); margin-bottom: 6px; }
+        .info-card .value { font-size: 18px; font-weight: 800; color: #00ffff; }
+        .mid-row-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        
+        /* 调整了容器布局和光圈尺寸，让三个光圈完美并排 */
+        .countdown-container { display: flex; flex-direction: row; align-items: center; justify-content: space-evenly; height: 220px; }
+        .countdown-circle { position: relative; width: 140px; height: 140px; border: 4px solid rgba(0, 255, 255, 0.1); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; }
+        .countdown-circle::before { content: ''; position: absolute; inset: -4px; border: 4px solid #00ffff; border-radius: 50%; border-top-color: transparent; border-left-color: transparent; animation: rotate 3s linear infinite; }
+        .countdown-circle.green-theme::before { border: 4px solid #00ffa2; border-top-color: transparent; border-left-color: transparent; animation: rotate 4s linear infinite reverse; }
+        
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .countdown-time { font-size: 24px; font-weight: 800; color: #fff; letter-spacing: 1px; }
+        
+        .map-frame { position: relative; height: 220px; border-radius: 12px; overflow: hidden; border: 1px solid rgba(0,255,255,0.15); background: #050816; }
+        .map-frame .leaflet-container { width: 100%; height: 100%; background: #050816; filter: invert(90%) hue-rotate(180deg) brightness(0.6) contrast(1.3); }
+        
+        .stats-grid-tall { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; }
+        .stats-item { background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%); border: 1px solid rgba(255, 255, 255, 0.08); border-left: 4px solid #444; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; height: 130px; transition: 0.3s; }
+        .stats-item:hover { transform: translateY(-5px); background: rgba(255,255,255,0.08); cursor: default; }
+        .stats-item.status { border-left-color: #ff3366; cursor: pointer; }
+        .stats-item.status:hover { border-color: #ff3366; box-shadow: 0 0 15px rgba(255, 51, 102, 0.3); }
+        .stats-item.input { border-left-color: #00ffa2; }
+        .stats-item.output { border-left-color: #00bbff; }
+        .stats-item.battery { border-left-color: #f1c40f; }
+        .stats-en { font-size: 10px; color: rgba(255,255,255,0.25); text-transform: uppercase; letter-spacing: 1.2px; }
+        .stats-label { font-size: 13px; color: rgba(255,255,255,0.6); }
+        .stats-val { font-size: 26px; font-weight: 800; color: #fff; margin-top: auto; }
+        .stats-val span { font-size: 14px; color: rgba(255,255,255,0.4); margin-left: 5px; }
+
+        .log-table-wrapper { width: 100%; overflow-x: auto; margin-top: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
+        .log-table { width: 100%; border-collapse: collapse; min-width: 1600px; font-size: 12px; text-align: left; }
+        .log-table th { background: rgba(0, 255, 255, 0.06); color: #00ffff; padding: 12px 10px; font-weight: 600; border-bottom: 1px solid rgba(0,255,255,0.2); white-space: nowrap; }
+        .log-table td { padding: 12px 10px; color: rgba(255,255,255,0.85); border-bottom: 1px solid rgba(255,255,255,0.05); white-space: nowrap; }
+        .log-table tr:hover { background: rgba(255,255,255,0.02); }
+        .log-table tr:nth-child(even) { background: rgba(255,255,255,0.01); }
+        .text-danger { color: #ff3366 !important; font-weight: bold; }
+        .text-success { color: #00ffa2 !important; }
+        .text-warning { color: #f1c40f !important; }
+        
+        .pagination-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; font-size: 12px; color: rgba(255,255,255,0.5); }
+        .pagination-buttons { display: flex; gap: 8px; align-items: center; }
+        .page-btn { background: rgba(0, 255, 255, 0.05); border: 1px solid rgba(0, 255, 255, 0.2); color: #00ffff; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-weight: 600; transition: 0.2s; }
+        .page-btn:hover:not(:disabled) { background: #00ffff; color: #050816; }
+        .page-btn:disabled { opacity: 0.3; cursor: not-allowed; border-color: rgba(255,255,255,0.1); color: #fff; }
+        .page-info { letter-spacing: 0.5px; }
+    </style>
+</head>
+<body>
+    <div class="panel header">
+        <div class="header-left-box">
+            <div>
+                <h1 onclick="location.href='index.html'" style="cursor:pointer">ENERGY CLOUD DASHBOARD</h1>
+                <p style="font-size: 10px; color: rgba(255,255,255,0.3); margin-top: 2px;">斐石科技 Faith Technology | 实时电力资产监控中心</p>
+            </div>
+            <a id="backToHubBtn" class="back-hub-btn" href="javascript:void(0);">⬅ 返回网点资产大屏</a>
+        </div>
+        <div class="header-right">
+            <div class="product-sn" id="displaySN">SN: LOADING...</div>
+            <div class="status-badge">● 正常运行 SYSTEM NORMAL</div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="section-header"><h2>设备核心运行指标 (规格: AC 500W / PV 500W / DC 35W)</h2></div>
+        <div class="device-monitor-full" id="monitorFull"></div>
+    </div>
+
+    <div class="mid-row-grid">
+        <div class="panel" style="margin-bottom:0;">
+            <div class="section-header"><h2>剩余租赁时间 & 实时系统时间</h2></div>
+            <div class="countdown-container">
+                <div class="countdown-circle">
+                    <div id="leaseTypeLabel" style="font-size: 11px; color: #00ffff; font-weight: 600; margin-bottom:6px;">加载中...</div>
+                    <div class="countdown-time" id="timer" style="font-size: 26px;">0 天</div>
+                    <div style="font-size: 10px; color: rgba(255,255,255,0.4); margin-top:6px;">服务有效期</div>
+                </div>
+                
+                <div class="countdown-circle">
+                    <div style="font-size: 11px; color: #00ffff; font-weight: 600; margin-bottom:6px;">LOCAL TIME</div>
+                    <div class="countdown-time" id="localTimeDisplay" style="font-family: monospace; color: #00ffff;">--:--:--</div>
+                    <div style="font-size: 10px; color: rgba(255,255,255,0.4); margin-top:6px;">本地时间</div>
+                </div>
+
+                <div class="countdown-circle green-theme">
+                    <div style="font-size: 11px; color: #00ffa2; font-weight: 600; margin-bottom:6px;">UTC TIME</div>
+                    <div class="countdown-time" id="utcTimeDisplay" style="font-family: monospace; color: #00ffa2;">--:--:--</div>
+                    <div style="font-size: 10px; color: rgba(255,255,255,0.4); margin-top:6px;">标准世界时</div>
+                </div>
+            </div>
+        </div>
+        <div class="panel" style="margin-bottom:0;">
+            <div class="section-header"><h2>地理围栏安全监控</h2></div>
+            <div class="map-frame">
+                <div id="liveMap"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="section-header"><h2>能源统计与电池健康矩阵</h2></div>
+        <div class="stats-grid-tall" id="matrixContainer"></div>
+    </div>
+
+    <div class="panel">
+        <div class="section-header">
+            <h2>终端全周期运行日志明细 (15分钟高频采集模式)</h2>
+            <span style="font-size: 11px; color: rgba(0,255,255,0.6);">每页展示 10 条微网遥测历史记录</span>
+        </div>
+        <div class="log-table-wrapper">
+            <table class="log-table">
+                <thead>
+                    <tr>
+                        <th>设备名称</th>
+                        <th>设备 SN 码</th>
+                        <th>UTC 时间</th>
+                        <th>本地时间</th>
+                        <th>纬度</th>
+                        <th>经度</th>
+                        <th>充电量（kWh）</th>
+                        <th>放电量（kWh）</th>
+                        <th>自发自用电量（kWh）</th>
+                        <th>上网电量（kWh）</th>
+                        <th>电网状态</th>
+                        <th>SOC（电池剩余电量）</th>
+                        <th>数据质量标记</th>
+                    </tr>
+                </thead>
+                <tbody id="logTableBody"></tbody>
+            </table>
+        </div>
+        <div class="pagination-bar">
+            <div class="page-info" id="pageInfo">正在计算总条数...</div>
+            <div class="pagination-buttons">
+                <button class="page-btn" id="prevBtn" onclick="changePage(-1)">上一页</button>
+                <button class="page-btn" id="nextBtn" onclick="changePage(1)">下一页</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="db.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const sn = urlParams.get('sn') || 'FT-EC-2026-001';
+        
+        let activeDeviceDB = (typeof DeviceDB !== 'undefined') ? DeviceDB : [];
+        const localData = localStorage.getItem('FAITH_TRACK_DYNAMIC_DEVICES');
+        if (localData) {
+            try { activeDeviceDB = JSON.parse(localData); } catch(e) { console.error(e); }
+        }
+
+        const deviceData = activeDeviceDB.find(d => d.sn === sn) || activeDeviceDB[0];
+        document.getElementById('displaySN').innerText = `SN: ${deviceData.sn}`;
+
+        const backBtn = document.getElementById('backToHubBtn');
+        if (backBtn && deviceData && deviceData.belongDealerId) {
+            backBtn.onclick = function() {
+                location.href = `dealer_hub.html?id=${deviceData.belongDealerId}`;
+            };
+        } else if (backBtn) {
+            backBtn.href = "dealer_hub.html?id=M001";
+        }
+
+        const deviceLat = parseFloat(deviceData.lat) || 1.28;
+        const deviceLng = parseFloat(deviceData.lng) || 103.81;
+
+        // 根据定位计算光照强度基准（W/m²）
+        const mockIrradiance = Math.max(100, Math.floor(1100 - (Math.abs(deviceLat) * 12) + (Math.random() * 60 - 30)));
+
+        // ================= 核心物理参数完全对齐计算 =================
+        const pv_in = Math.min(500, Math.floor(mockIrradiance * 0.52 * (0.95 + Math.random() * 0.05)));
+        const ac_p = Math.min(500, Math.floor(180 + Math.random() * 160));
+        const dc_p = Math.min(35, Math.floor(12 + Math.random() * 8));
+
+        const pv_day = parseFloat(((pv_in * 5.5) / 1000).toFixed(2));
+        const load_day = parseFloat(((ac_p * 6.0 + dc_p * 12) / 1000).toFixed(2));
+
+        const worktime = parseInt(deviceData.worktime) || 285;
+        const offtime = parseInt(deviceData.offtime) || 15;
+        const runtime = worktime + offtime; 
+
+        const dis = parseFloat((worktime * 0.23).toFixed(2));
+        const cycle = Math.floor(dis / 1.004);
+
+        const pv_yr = parseFloat((dis * 1.06).toFixed(2)); 
+        const pv_mon = parseFloat(Math.min(pv_yr, pv_day * 26).toFixed(2)); 
+        const load_mon = parseFloat((dis * 0.94).toFixed(2));
+        const rssi = Math.floor(-66 + Math.random() * 10);
+
+        // ================= Leaflet 地图初始化 =================
+        const map = L.map('liveMap', { zoomControl: false, attributionControl: false }).setView([deviceLat, deviceLng], 14);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
+
+        const centerMarker = L.circleMarker([deviceLat, deviceLng], {
+            radius: 7, color: '#fff', weight: 2, fillColor: '#00ffff', fillOpacity: 1
+        }).addTo(map);
+        centerMarker.bindPopup(`<b>设备终端位置</b><br>SN: ${deviceData.sn}<br>坐标: ${deviceLng}, ${deviceLat}`).openPopup();
+
+        const securityAura = L.circle([deviceLat, deviceLng], {
+            radius: 1000, color: '#00ffff', weight: 2, opacity: 0.8, fillColor: '#00ffff', fillOpacity: 0.15
+        }).addTo(map);
+
+        // ================= 租赁倒计时赋值 =================
+        document.getElementById('leaseTypeLabel').innerText = deviceData.leaseType || '标准租赁';
+        document.getElementById('timer').innerText = deviceData.leaseRemain || '0 天';
+
+        // ================= 实时时钟引擎 =================
+        function updateClock() {
+            const now = new Date();
+            const lh = String(now.getHours()).padStart(2, '0');
+            const lm = String(now.getMinutes()).padStart(2, '0');
+            const ls = String(now.getSeconds()).padStart(2, '0');
+            
+            const uh = String(now.getUTCHours()).padStart(2, '0');
+            const um = String(now.getUTCMinutes()).padStart(2, '0');
+            const us = String(now.getUTCSeconds()).padStart(2, '0');
+            
+            document.getElementById('localTimeDisplay').innerText = `${lh}:${lm}:${ls}`;
+            document.getElementById('utcTimeDisplay').innerText = `${uh}:${um}:${us}`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // 填充面板矩阵
+        const statsData = [
+            { e: 'PV INPUT', l: '实时PV功率', v: pv_in, u: 'W', t: 'input' },
+            { e: 'DAY GENERATION', l: '日PV发电量', v: pv_day, u: 'kWh', t: 'input' },
+            { e: 'MONTH GEN', l: '月PV发电量', v: pv_mon, u: 'kWh', t: 'input' },
+            { e: 'YEAR GEN', l: '年PV发电量', v: pv_yr, u: 'kWh', t: 'input' },
+            { e: 'PV INPUT RATIO', l: 'PV输入占比', v: 99, u: '%', t: 'input' }, 
+            { e: 'AC OUTPUT', l: '实时AC输出', v: ac_p, u: 'W', t: 'output' },
+            { e: 'DC OUTPUT', l: '实时DC输出', v: dc_p, u: 'W', t: 'output' },
+            { e: 'DAY CONSUME', l: '日总耗电量', v: load_day, u: 'kWh', t: 'output' },
+            { e: 'MONTH CONSUME', l: '月总耗电量', v: load_mon, u: 'kWh', t: 'output' },
+            { e: 'SOLAR IRRADIANCE', l: '光照强度', v: mockIrradiance, u: 'W/m²', t: 'input' },
+            { e: 'BATTERY SOC', l: '电芯剩余容量', v: deviceData.soc, u: '%', t: 'battery' },
+            { e: 'BATTERY SOH', l: '电池健康度', v: deviceData.soh, u: '%', t: 'battery' },
+            { e: 'BATTERY TEMP', l: '电芯实时温度', v: deviceData.temp || 27, u: '℃', t: 'battery' },
+            { e: 'CYCLE COUNT', l: '循环充放次数', v: cycle, u: '次', t: 'battery' },      
+            { e: 'TOTAL DISCHARGE', l: '累计放电量', v: dis, u: 'kWh', t: 'battery' },      
+            { e: 'SYSTEM TIME', l: '累计在线时长', v: runtime, u: 'h', t: '' },            
+            { e: 'WORKING TIME', l: '工作时长', v: worktime, u: 'h', t: '' },              
+            { e: 'OFFLINE TIME', l: '历史离线时长', v: offtime, u: 'h', t: '' },            
+            { e: 'HEARTBEAT', l: '信号强度 RSSI', v: rssi, u: 'dBm', t: '' },
+            { e: 'DEVICE STATUS', l: '终端配置中心', v: '进入', u: 'SETTING', t: 'status' }
+        ];
+
+        document.getElementById('matrixContainer').innerHTML = statsData.map(d => `
+            <div class="stats-item ${d.t}" ${d.t === 'status' ? `onclick="location.href='config.html?sn=${sn}'"` : ''}>
+                <div class="stats-en">${d.e}</div>
+                <div class="stats-label">${d.l}</div>
+                <div class="stats-val">${d.v}<span>${d.u}</span></div>
+            </div>
+        `).join('');
+
+        const monitorItems = [
+            {l:'PV输入功率', v: pv_in + ' W'}, 
+            {l:'电池电量', v: deviceData.soc + ' %'}, 
+            {l:'实时AC输出', v: ac_p + ' W'}, 
+            {l:'实时DC输出', v: dc_p + ' W'},
+            {l:'健康度', v: deviceData.soh + ' %'}, 
+            {l:'电池温度', v: (deviceData.temp || 27) + ' ℃'}, 
+            {l:'光照强度', v: mockIrradiance + ' W/m²'}, 
+            {l:'固件版本', v: deviceData.ver || 'v1.0.2'}
+        ];
+        document.getElementById('monitorFull').innerHTML = monitorItems.map(m => `
+            <div class="info-card"><div class="label">${m.l}</div><div class="value">${m.v}</div></div>
+        `).join('');
+
+        // ================= 15分钟高频微网数据采集流水对齐逻辑 =================
+        let currentPage = 1;
+        const pageSize = 10;
+        let generatedLogs = [];
+
+        function formatDate(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            const hh = String(date.getHours()).padStart(2, '0');
+            const mm = String(date.getMinutes()).padStart(2, '0');
+            const ss = String(date.getSeconds()).padStart(2, '0');
+            return `${y}-${m}-${d} ${hh}:${mm}:${ss}`;
+        }
+
+        function generateMockLogs() {
+            const logs = [];
+            // 基于当前系统大盘时间 2026-06-01 15:15:00 开始向历史倒推
+            const baseLocalTime = new Date('2026-06-01 15:15:00');
+            
+            for (let i = 0; i < 100; i++) {
+                const localTime = new Date(baseLocalTime.getTime() - i * 15 * 60 * 1000);
+                const utcTime = new Date(localTime.getTime() - 8 * 3600 * 1000);
+                
+                const hour = localTime.getHours();
+                const isDaylight = (hour >= 6 && hour <= 18);
+                
+                const mockCharge = isDaylight ? parseFloat((0.08 + Math.random() * 0.05).toFixed(4)) : 0;
+                const mockDischarge = parseFloat((0.03 + Math.random() * 0.04).toFixed(4));
+                
+                const mockSelfUse = isDaylight ? parseFloat((mockCharge * 0.75).toFixed(4)) : mockDischarge;
+                const mockGridFeed = (isDaylight && Math.random() > 0.5) ? parseFloat((mockCharge * 0.25).toFixed(4)) : 0;
+                
+                let gridStatus = '<span class="text-success">并网正常 (Grid-tied)</span>';
+                if (hour === 14 && Math.random() > 0.7) {
+                    gridStatus = '<span class="text-warning">微网孤岛模式 (Islanded)</span>';
+                } else if (Math.random() > 0.95) {
+                    gridStatus = '<span class="text-danger">电网离线 (Off-grid)</span>';
+                }
+                
+                const mockSoc = Math.max(10, Math.min(100, Math.round(deviceData.soc * (0.95 + Math.sin(i / 10) * 0.05))));
+                
+                let dataQuality = '<span class="text-success">Good</span>';
+                if (i % 35 === 0) dataQuality = '<span class="text-warning">Suspect (Re-sync)</span>';
+
+                logs.push({
+                    name: deviceData.name,
+                    sn: deviceData.sn,
+                    utcTime: formatDate(utcTime),
+                    localTime: formatDate(localTime),
+                    lat: deviceLat.toFixed(4),
+                    lng: deviceLng.toFixed(4),
+                    charge: mockCharge + ' kWh',
+                    discharge: mockDischarge + ' kWh',
+                    selfUse: mockSelfUse + ' kWh',
+                    gridFeed: mockGridFeed + ' kWh',
+                    gridStatus: gridStatus,
+                    soc: mockSoc + ' %',
+                    quality: dataQuality
+                });
+            }
+            return logs;
+        }
+
+        function renderLogTable() {
+            const start = (currentPage - 1) * pageSize;
+            const end = start + pageSize;
+            const pageData = generatedLogs.slice(start, end);
+
+            const tbody = document.getElementById('logTableBody');
+            tbody.innerHTML = pageData.map(log => `
+                <tr>
+                    <td style="font-weight:700;">${log.name}</td>
+                    <td style="font-family:monospace; color:#aaa;">${log.sn}</td>
+                    <td style="color:#00ffff; font-family:monospace;">${log.utcTime}</td>
+                    <td style="color:#00ffa2; font-family:monospace; font-weight:500;">${log.localTime}</td>
+                    <td>${log.lat}</td>
+                    <td>${log.lng}</td>
+                    <td style="color:#00ffa2; font-weight:600; font-family:monospace;">${log.charge}</td>
+                    <td style="color:#00bbff; font-weight:600; font-family:monospace;">${log.discharge}</td>
+                    <td style="font-family:monospace;">${log.selfUse}</td>
+                    <td style="color:#f1c40f; font-family:monospace;">${log.gridFeed}</td>
+                    <td>${log.gridStatus}</td>
+                    <td style="font-weight:600; color:#fff;">${log.soc}</td>
+                    <td>${log.quality}</td>
+                </tr>
+            `).join('');
+
+            const totalPages = Math.ceil(generatedLogs.length / pageSize);
+            document.getElementById('pageInfo').innerText = `共 ${generatedLogs.length} 条高频记录 | 第 ${currentPage} / ${totalPages} 页`;
+            document.getElementById('prevBtn').disabled = currentPage === 1;
+            document.getElementById('nextBtn').disabled = currentPage === totalPages;
+        }
+
+        function changePage(direction) {
+            currentPage += direction;
+            renderLogTable();
+        }
+
+        window.onload = function() {
+            generatedLogs = generateMockLogs();
+            renderLogTable();
+            setTimeout(() => { map.invalidateSize(); }, 200);
+        };
+    </script>
+</body>
+</html>

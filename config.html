@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>系统配置中心 - Faith Technology</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="db.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at top, #0d1630 0%, #050816 45%, #02040d 100%);
+            color: #fff; min-height: 100vh; padding: 30px;
+        }
+        body::before {
+            content: ''; position: fixed; inset: 0;
+            background: linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px; pointer-events: none; z-index: -1;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 30px; padding-bottom: 15px; border-bottom: 1px solid rgba(0, 255, 255, 0.2); }
+        .page-title h1 { font-size: 28px; font-weight: 800; background: linear-gradient(90deg, #fff, #00ffff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; cursor: pointer; }
+        .device-context { font-size: 13px; color: #00ffff; margin-top: 5px; font-family: monospace; }
+        .btn { padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.3s; border: 1px solid transparent; }
+        .btn-primary { background: rgba(0, 255, 255, 0.15); border-color: #00ffff; color: #00ffff; }
+        .btn-primary:hover { background: #00ffff; color: #050816; }
+        .btn-outline { background: transparent; border-color: rgba(255, 255, 255, 0.2); color: #fff; }
+        .config-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .config-card { background: rgba(10, 18, 38, 0.6); border: 1px solid rgba(0, 255, 255, 0.1); backdrop-filter: blur(15px); border-radius: 16px; padding: 20px; transition: 0.3s; }
+        .config-card:hover { border-color: rgba(0, 255, 255, 0.4); transform: translateY(-5px); }
+        .config-label { font-size: 13px; color: rgba(255, 255, 255, 0.6); margin-bottom: 15px; display: flex; align-items: center; }
+        .config-label::before { content: ''; width: 4px; height: 14px; background: #00ffff; margin-right: 8px; border-radius: 2px; }
+        .input-group { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+        .adj-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1); background: rgba(255, 255, 255, 0.05); color: #fff; cursor: pointer; }
+        .val-input { flex: 1; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(0, 255, 255, 0.2); border-radius: 8px; color: #00ffff; text-align: center; height: 36px; font-weight: 700; outline: none; }
+        .card-actions { display: flex; justify-content: space-between; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 12px; }
+        .action-link { font-size: 12px; color: #6bb3a1; cursor: pointer; font-weight: 600; }
+        .group-title { grid-column: 1 / -1; font-size: 14px; color: #00ffa2; text-transform: uppercase; letter-spacing: 2px; margin: 20px 0 10px 0; display: flex; align-items: center; }
+        .group-title::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(0, 255, 162, 0.2), transparent); margin-left: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="page-header">
+            <div class="page-title">
+                <h1 id="backToDevice">SYSTEM CONFIGURATION</h1>
+                <div class="device-context" id="deviceSnDisplay">LOADING DEVICE DATA...</div>
+            </div>
+            <div class="global-actions">
+                <button class="btn btn-outline" id="backToDeviceBtn">返回设备详情</button>
+                <button class="btn btn-primary" onclick="syncAll()">同步修改到云端</button>
+            </div>
+        </header>
+        <main class="config-grid" id="mainConfigContainer"></main>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const sn = urlParams.get('sn') || 'FT-EC-2026-001'; 
+
+        // 数据索引机制（对接缓存与原始数据，修复 getDevice(sn) 报错）
+        let activeDeviceDB = (typeof DeviceDB !== 'undefined') ? DeviceDB : [];
+        const localData = localStorage.getItem('FAITH_TRACK_DYNAMIC_DEVICES');
+        if (localData) {
+            try { activeDeviceDB = JSON.parse(localData); } catch(e) { console.error(e); }
+        }
+
+        const currentDevice = activeDeviceDB.find(d => d.sn === sn) || activeDeviceDB[0] || {
+            name: "未知微网终端", sn: sn, loc: "默认区域", pv_in: 0, pv_day: 0, cycle: 0, dis: 0, temp: 0
+        };
+
+        document.getElementById('deviceSnDisplay').innerText = `DEVICE: ${currentDevice.name} | SN: ${currentDevice.sn} | LOCATION: ${currentDevice.loc}`;
+        
+        // 统一点击标题和返回按钮的行为，均指向该设备的 device.html 页面
+        const backAction = () => { location.href = `device.html?sn=${sn}`; };
+        document.getElementById('backToDevice').onclick = backAction;
+        document.getElementById('backToDeviceBtn').onclick = backAction;
+
+        const configGroups = [
+            {
+                title: "实时运行基准 (基于系统动态索引)",
+                items: [
+                    { n: 'PV 额定输入 (W)', v: '200' }, 
+                    { n: '当前实时 PV 输入', v: currentDevice.pv_in },
+                    { n: '当日发电上限 (kWh)', v: '1.5' }, 
+                    { n: '今日已发电量', v: currentDevice.pv_day },
+                    { n: '电池循环次数', v: currentDevice.cycle || 0 },
+                    { n: '累计放电量 (kWh)', v: currentDevice.dis || 0 },
+                    { n: '当前核心温度', v: currentDevice.temp || 0 }
+                ]
+            },
+            {
+                title: "AC 交流电保护配置",
+                items: [
+                    { n: 'AC低压切出', v: '170' }, { n: 'AC低压回复', v: '180' }, { n: 'AC高压切出', v: '270' }, 
+                    { n: 'AC高压回复', v: '260' }, { n: '额定输出功率', v: '300' }
+                ]
+            },
+            {
+                title: "DC 电池安全矩阵",
+                items: [
+                    { n: '低压预警阈值', v: '3.00' }, { n: '低压恢复阈值', v: '3.20' }, { n: '高压截止阈值', v: '3.65' }, 
+                    { n: '高温保护点', v: '65' }
+                ]
+            }
+        ];
+
+        const container = document.getElementById('mainConfigContainer');
+        container.innerHTML = configGroups.map(group => `
+            <div class="group-title">${group.title}</div>
+            ${group.items.map(item => `
+                <div class="config-card">
+                    <div class="config-label">${item.n}</div>
+                    <div class="input-group">
+                        <button class="adj-btn" onclick="adjust(this, -1)">-</button>
+                        <input type="text" class="val-input" value="${item.v}">
+                        <button class="adj-btn" onclick="adjust(this, 1)">+</button>
+                    </div>
+                    <div class="card-actions">
+                        <span class="action-link" onclick="location.reload()">重置读取</span>
+                        <span class="action-link" style="color:#00ffff" onclick="saveSingle('${item.n}')">下发修改</span>
+                    </div>
+                </div>
+            `).join('')}
+        `).join('');
+
+        function adjust(btn, delta) {
+            const input = btn.parentElement.querySelector('input');
+            let curr = parseFloat(input.value);
+            const isFloat = input.value.includes('.');
+            const step = isFloat ? 0.01 : 1;
+            input.value = isFloat ? (curr + delta * step).toFixed(2) : (Math.max(0, Math.floor(curr + delta)));
+        }
+
+        function saveSingle(name) {
+            alert(`[Faith Tech 云同步]\n设备 SN: ${sn}\n配置项: ${name}\n状态: 已成功下发至终端`);
+        }
+
+        function syncAll() {
+            alert(`正在同步设备 ${sn} 的所有配置至 Faith Technology 全球控制中心...`);
+        }
+    </script>
+</body>
+</html>

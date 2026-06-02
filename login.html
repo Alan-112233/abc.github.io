@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - Faith Technology Energy Cloud</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at top, #0d1630 0%, #050816 45%, #02040d 100%);
+            color: #fff;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* 统一的科技网格背景 */
+        body::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: 
+                linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 420px;
+            padding: 40px;
+            background: rgba(10, 18, 38, 0.7);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            backdrop-filter: blur(30px);
+            border-radius: 24px;
+            position: relative;
+            z-index: 1;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s ease;
+        }
+
+        /* 登录失败的震动动画 */
+        .shake { animation: shake 0.4s ease-in-out; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            50% { transform: translateX(8px); }
+            75% { transform: translateX(-8px); }
+        }
+
+        .logo-area {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo-area h1 {
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: 3px;
+            background: linear-gradient(90deg, #fff, #00ffff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .logo-area p {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 11px;
+            color: rgba(0, 255, 255, 0.8);
+            margin-bottom: 8px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+            transition: 0.3s;
+        }
+
+        input:focus {
+            border-color: #00ffff;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.15);
+            background: rgba(0, 255, 255, 0.03);
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #00ffff 0%, #0088ff 100%);
+            border: none;
+            border-radius: 12px;
+            color: #050816;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 255, 255, 0.3);
+        }
+
+        .error-msg {
+            color: #ff3366;
+            font-size: 12px;
+            text-align: center;
+            margin-top: 15px;
+            height: 18px;
+            opacity: 0;
+            transition: 0.3s;
+        }
+
+        .footer-links {
+            margin-top: 30px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+        }
+
+        .footer-links a {
+            color: rgba(255, 255, 255, 0.3);
+            text-decoration: none;
+            transition: 0.3s;
+        }
+
+        .footer-links a:hover { color: #00ffff; }
+
+        .orb {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(0, 255, 255, 0.08) 0%, transparent 70%);
+            z-index: 0;
+            filter: blur(60px);
+            animation: move 15s infinite alternate;
+        }
+
+        @keyframes move {
+            from { transform: translate(-30%, -30%); }
+            to { transform: translate(30%, 30%); }
+        }
+    </style>
+</head>
+<body>
+    <div class="orb"></div>
+    
+    <div class="login-container" id="loginBox">
+        <div class="logo-area">
+            <h1>FAITH TECH</h1>
+            <p>Global Energy Assets Cloud</p>
+        </div>
+
+        <form onsubmit="handleLogin(event)">
+            <div class="form-group">
+                <label>OPERATOR ID</label>
+                <input type="text" placeholder="请输入账号" id="username" autocomplete="off" required>
+            </div>
+
+            <div class="form-group">
+                <label>ACCESS TOKEN</label>
+                <input type="password" placeholder="请输入密码" id="password" required>
+            </div>
+
+            <button type="submit" class="login-btn" id="loginBtn">SECURE LOGIN</button>
+            <div class="error-msg" id="errorHint">身份验证失败，请核对凭据</div>
+        </form>
+
+        <div class="footer-links">
+            <a href="#">FORGOT ACCESS?</a>
+            <a href="#">SYSTEM STATUS</a>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px; font-size: 9px; color: rgba(255,255,255,0.2); letter-spacing: 1px;">
+            SECURED BY FAITH TECHNOLOGY ENCRYPTION
+        </div>
+    </div>
+
+    <script>
+        function handleLogin(e) {
+            e.preventDefault();
+            
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            const btn = document.getElementById('loginBtn');
+            const hint = document.getElementById('errorHint');
+            const box = document.getElementById('loginBox');
+
+            // 隐藏之前的错误信息
+            hint.style.opacity = "0";
+            box.classList.remove('shake');
+
+            // 设定您要求的账号密码
+            if (user === 'fskj' && pass === 'fskj8888') {
+                btn.innerText = "AUTHENTICATING...";
+                btn.style.pointerEvents = "none";
+                btn.style.opacity = "0.7";
+                
+                // 模拟安全验证耗时
+                setTimeout(() => {
+                    location.href = 'index.html';
+                }, 1000);
+            } else {
+                // 验证失败逻辑
+                setTimeout(() => {
+                    box.classList.add('shake');
+                    hint.style.opacity = "1";
+                }, 100);
+            }
+        }
+    </script>
+</body>
+</html>
