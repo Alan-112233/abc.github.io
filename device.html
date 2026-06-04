@@ -6,7 +6,7 @@
     <title>Faith Technology - Energy Cloud Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -44,7 +44,6 @@
         .info-card .value { font-size: 18px; font-weight: 800; color: #00ffff; }
         .mid-row-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
         
-        /* 调整了容器布局和光圈尺寸，让三个光圈完美并排 */
         .countdown-container { display: flex; flex-direction: row; align-items: center; justify-content: space-evenly; height: 220px; }
         .countdown-circle { position: relative; width: 140px; height: 140px; border: 4px solid rgba(0, 255, 255, 0.1); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; }
         .countdown-circle::before { content: ''; position: absolute; inset: -4px; border: 4px solid #00ffff; border-radius: 50%; border-top-color: transparent; border-left-color: transparent; animation: rotate 3s linear infinite; }
@@ -91,7 +90,7 @@
     <div class="panel header">
         <div class="header-left-box">
             <div>
-                <h1 onclick="location.href='index.html'" style="cursor:pointer">ENERGY CLOUD DASHBOARD</h1>
+                <h1 onclick="location.href='home.html'" style="cursor:pointer">ENERGY CLOUD DASHBOARD</h1>
                 <p style="font-size: 10px; color: rgba(255,255,255,0.3); margin-top: 2px;">斐石科技 Faith Technology | 实时电力资产监控中心</p>
             </div>
             <a id="backToHubBtn" class="back-hub-btn" href="javascript:void(0);">⬅ 返回网点资产大屏</a>
@@ -158,6 +157,11 @@
                         <th>本地时间</th>
                         <th>纬度</th>
                         <th>经度</th>
+                        <th>设备在线时长</th>
+                        <th>运行状态</th>
+                        <th>安装时间</th>
+                        <th>替代燃料数据 (升)</th>
+                        <th>排放因子 (kg CO2/l)</th>
                         <th>充电量（kWh）</th>
                         <th>放电量（kWh）</th>
                         <th>自发自用电量（kWh）</th>
@@ -224,6 +228,12 @@
         const dis = parseFloat((worktime * 0.23).toFixed(2));
         const cycle = Math.floor(dis / 1.004);
 
+        // 修改1: 电池健康度在500次以内都是99%
+        const displaySoh = (cycle <= 500) ? 99 : Math.max(70, Math.floor(99 - (cycle - 500) * 0.05));
+
+        // 修改2: 电芯温度，工作的时候在30~45°C 之间
+        const displayTemp = Math.floor(30 + Math.random() * 15);
+
         const pv_yr = parseFloat((dis * 1.06).toFixed(2)); 
         const pv_mon = parseFloat(Math.min(pv_yr, pv_day * 26).toFixed(2)); 
         const load_mon = parseFloat((dis * 0.94).toFixed(2));
@@ -276,9 +286,9 @@
             { e: 'MONTH CONSUME', l: '月总耗电量', v: load_mon, u: 'kWh', t: 'output' },
             { e: 'SOLAR IRRADIANCE', l: '光照强度', v: mockIrradiance, u: 'W/m²', t: 'input' },
             { e: 'BATTERY SOC', l: '电芯剩余容量', v: deviceData.soc, u: '%', t: 'battery' },
-            { e: 'BATTERY SOH', l: '电池健康度', v: deviceData.soh, u: '%', t: 'battery' },
-            { e: 'BATTERY TEMP', l: '电芯实时温度', v: deviceData.temp || 27, u: '℃', t: 'battery' },
-            { e: 'CYCLE COUNT', l: '循环充放次数', v: cycle, u: '次', t: 'battery' },      
+            { e: 'BATTERY SOH', l: '电池健康度', v: displaySoh, u: '%', t: 'battery' },
+            { e: 'BATTERY TEMP', l: '电芯实时温度', v: displayTemp, u: '℃', t: 'battery' },
+            { i: 'CYCLE COUNT', l: '循环充放次数', v: cycle, u: '次', t: 'battery' },      
             { e: 'TOTAL DISCHARGE', l: '累计放电量', v: dis, u: 'kWh', t: 'battery' },      
             { e: 'SYSTEM TIME', l: '累计在线时长', v: runtime, u: 'h', t: '' },            
             { e: 'WORKING TIME', l: '工作时长', v: worktime, u: 'h', t: '' },              
@@ -300,8 +310,8 @@
             {l:'电池电量', v: deviceData.soc + ' %'}, 
             {l:'实时AC输出', v: ac_p + ' W'}, 
             {l:'实时DC输出', v: dc_p + ' W'},
-            {l:'健康度', v: deviceData.soh + ' %'}, 
-            {l:'电池温度', v: (deviceData.temp || 27) + ' ℃'}, 
+            {l:'健康度', v: displaySoh + ' %'}, 
+            {l:'电池温度', v: displayTemp + ' ℃'}, 
             {l:'光照强度', v: mockIrradiance + ' W/m²'}, 
             {l:'固件版本', v: deviceData.ver || 'v1.0.2'}
         ];
@@ -326,7 +336,6 @@
 
         function generateMockLogs() {
             const logs = [];
-            // 基于当前系统大盘时间 2026-06-01 15:15:00 开始向历史倒推
             const baseLocalTime = new Date('2026-06-01 15:15:00');
             
             for (let i = 0; i < 100; i++) {
@@ -339,15 +348,16 @@
                 const mockCharge = isDaylight ? parseFloat((0.08 + Math.random() * 0.05).toFixed(4)) : 0;
                 const mockDischarge = parseFloat((0.03 + Math.random() * 0.04).toFixed(4));
                 
-                const mockSelfUse = isDaylight ? parseFloat((mockCharge * 0.75).toFixed(4)) : mockDischarge;
-                const mockGridFeed = (isDaylight && Math.random() > 0.5) ? parseFloat((mockCharge * 0.25).toFixed(4)) : 0;
-                
-                let gridStatus = '<span class="text-success">并网正常 (Grid-tied)</span>';
-                if (hour === 14 && Math.random() > 0.7) {
-                    gridStatus = '<span class="text-warning">微网孤岛模式 (Islanded)</span>';
-                } else if (Math.random() > 0.95) {
-                    gridStatus = '<span class="text-danger">电网离线 (Off-grid)</span>';
-                }
+                // 修改3&4: 增加采样数据项，并且全部设备认定为“离网”运行状态，相关电量归零
+                const mockOnlineHours = parseFloat((runtime - (i * 0.25)).toFixed(2));
+                const runStatus = '<span class="text-success">正常运行</span>';
+                const installTime = '2025-08-12';
+                const fuelBaseline = parseFloat((mockDischarge * 0.28).toFixed(4)); // 柴油/煤油替代消耗测算基准
+                const emissionFactor = 2.68; // 柴油发电机排放因子标准
+
+                const mockSelfUse = 0; // 离网状态：归 0
+                const mockGridFeed = 0; // 离网状态：归 0
+                const gridStatus = '<span class="text-danger">离网 (Off-grid)</span>'; // 离网状态固定
                 
                 const mockSoc = Math.max(10, Math.min(100, Math.round(deviceData.soc * (0.95 + Math.sin(i / 10) * 0.05))));
                 
@@ -361,6 +371,11 @@
                     localTime: formatDate(localTime),
                     lat: deviceLat.toFixed(4),
                     lng: deviceLng.toFixed(4),
+                    onlineHours: mockOnlineHours + ' h',
+                    runStatus: runStatus,
+                    installTime: installTime,
+                    fuelData: fuelBaseline + ' L',
+                    ef: emissionFactor + ' EF',
                     charge: mockCharge + ' kWh',
                     discharge: mockDischarge + ' kWh',
                     selfUse: mockSelfUse + ' kWh',
@@ -387,10 +402,15 @@
                     <td style="color:#00ffa2; font-family:monospace; font-weight:500;">${log.localTime}</td>
                     <td>${log.lat}</td>
                     <td>${log.lng}</td>
+                    <td style="font-family:monospace; color:#fff;">${log.onlineHours}</td>
+                    <td>${log.runStatus}</td>
+                    <td style="color:#aaa;">${log.installTime}</td>
+                    <td style="color:#f1c40f; font-family:monospace;">${log.fuelData}</td>
+                    <td style="color:#00ffff; font-family:monospace;">${log.ef}</td>
                     <td style="color:#00ffa2; font-weight:600; font-family:monospace;">${log.charge}</td>
                     <td style="color:#00bbff; font-weight:600; font-family:monospace;">${log.discharge}</td>
-                    <td style="font-family:monospace;">${log.selfUse}</td>
-                    <td style="color:#f1c40f; font-family:monospace;">${log.gridFeed}</td>
+                    <td style="font-family:monospace; color:rgba(255,255,255,0.4);">${log.selfUse}</td>
+                    <td style="color:rgba(255,255,255,0.4); font-family:monospace;">${log.gridFeed}</td>
                     <td>${log.gridStatus}</td>
                     <td style="font-weight:600; color:#fff;">${log.soc}</td>
                     <td>${log.quality}</td>
