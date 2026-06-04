@@ -121,7 +121,7 @@
                 <div class="user-profile">
                     <span class="user-avatar"></span>
                     <span class="user-name" id="dealerAccount">ACCOUNT: --</span>
-                    <a class="back-btn" href="index.html">返回总台</a>
+                    <a class="back-btn" href="home.html">返回总台</a>
                 </div>
                 <div id="dealerLocation">大区物理归属: --</div>
                 <div id="scopeDisplay" style="color:rgba(0, 255, 255, 0.9); font-weight:600;">资产闭锁范围: 全大区合并数据</div>
@@ -276,7 +276,6 @@
                     </div>
                 </div>
             </div>
-
             <div class="panel">
                 <div class="section-header"><h2>单机账目营收细则 (基于国际美金清算)</h2></div>
                 <table>
@@ -296,7 +295,7 @@
 
         <div id="sec-carbon" class="page-section">
             <div class="panel">
-                <div class="section-header"><h2>绿色能源减排追踪面板 (放电量测算标准：1000度电 = 0.6吨碳减排)</h2></div>
+                <div class="section-header"><h2>绿色能源减排追踪面板 (放电量测算标准：1000度电 = 0.6吨 carbon 减排)</h2></div>
                 <div class="summary-grid" style="margin-bottom: 20px;">
                     <div class="summary-row quad row-carbon" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
                         <div class="metric-card" style="border-left-color: #2ecc71; color: #2ecc71;"><div class="metric-label">受控范围今日总放电量</div><div class="metric-value" id="c-load-day">0.00<span>kWh</span></div></div>
@@ -306,7 +305,6 @@
                     </div>
                 </div>
             </div>
-
             <div class="panel">
                 <div class="section-header"><h2>终端单机放电碳减排联动审计明细 (数字锁定小数点后两位)</h2></div>
                 <table>
@@ -330,10 +328,9 @@
     <script src="db.js"></script>
     <script>
         const params = new URLSearchParams(window.location.search);
-        let masterDealerId = params.get('id') || 'M001'; 
-
+        let masterDealerId = params.get('id') || 'M001';
         const currentMaster = DealerDB.find(o => o.id === masterDealerId);
-        let selectedSubDealerId = null; 
+        let selectedSubDealerId = null;
 
         // Tab 页签控制
         let currentTab = 'overview';
@@ -341,273 +338,181 @@
             currentTab = targetTabId;
             document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
             menuElement.classList.add('active');
+            
             document.querySelectorAll('.page-section').forEach(sec => sec.classList.remove('active'));
-
-            const targetSection = document.getElementById(`sec-${targetTabId}`);
-            if (targetSection) targetSection.classList.add('active');
-
-            const titleMap = {
+            const targetSec = document.getElementById('sec-' + targetTabId);
+            if(targetSec) targetSec.classList.add('active');
+            
+            const titles = {
                 'overview': '网点用电资产总览',
-                'subdealers': '下辖二级网点网格',
-                'devices': '网点受控全量设备列表',
-                'geofence': '高精地理围栏安全追踪',
-                'leasing': 'PAYG 智能合约租赁控制面板',
-                'finance': '大区合并财务账目审计大屏',
-                'carbon': '清洁电力绿色碳减排追踪看板'
+                'subdealers': '下辖二级加盟网点级联网络',
+                'devices': '受控全辖分布式在籍设备总表',
+                'geofence': '高精地理围栏资产安全防盗控制中心',
+                'leasing': '智能 Pay-As-You-Go 云授信卡分发中心',
+                'finance': '大区租金美金自动清算对账审计流水',
+                'carbon': '大区分布式绿色电力碳足迹追踪审计'
             };
-            document.getElementById('pageTitle').innerText = titleMap[targetTabId] || '资产管理中心';
+            document.getElementById('pageTitle').innerText = titles[targetTabId] || '云管理大屏';
         }
 
-        function filterBySubDealer(subId) {
+        // 设备过滤器切换
+        function filterBySubDealer(subId, subName) {
             selectedSubDealerId = subId;
-            renderDynamicDashboard(); 
-            const overviewMenuOpt = document.querySelector('.sidebar-menu .menu-item');
-            switchTab('overview', overviewMenuOpt);
+            document.getElementById('scopeDisplay').innerHTML = `资产闭锁范围: <span style="color:#00ffa2;">已筛选至二级商 [${subName}] 辖区数据</span>`;
+            
+            const bar = document.getElementById('filterNotification');
+            bar.className = 'filter-status-bar';
+            bar.style.display = 'flex';
+            bar.innerHTML = `
+                <span>🔍 当前大屏处于过滤状态：仅显示 <b>${subName}</b> 的下辖分布式硬件资产</span>
+                <button class="clear-filter-btn" onclick="clearSubFilter()">❌ 解除过滤，恢复大区合并数据</button>
+            `;
+            
+            renderAllViews();
         }
 
         function clearSubFilter() {
             selectedSubDealerId = null;
-            renderDynamicDashboard();
+            document.getElementById('scopeDisplay').innerText = `资产闭锁范围: 全大区合并数据`;
+            document.getElementById('filterNotification').style.display = 'none';
+            renderAllViews();
         }
 
-        // 精准状态机：根据终端下拉框的选中值动态控制各个窗口的输入亮起/暗淡状态
-        function syncLeaseName() {
-            const selectEl = document.getElementById('leaseSelectSn');
-            const targetSn = selectEl.value;
-            const locInput = document.getElementById('leaseNewLoc');
-            const nameInput = document.getElementById('leaseDeviceName');
+        function renderAllViews() {
+            if(!currentMaster) return;
 
-            if (targetSn === "NONE") {
-                nameInput.disabled = false;
-                locInput.disabled = false;
-                nameInput.value = "";
-                locInput.value = "";
-                nameInput.placeholder = "请输入新资产的设备名称";
-                locInput.placeholder = "请输入新资产落地部署的地理区域";
-            } else {
-                nameInput.disabled = false;
-                locInput.disabled = true;
-                
-                const childDealerIds = DealerDB.filter(o => o.parentId === masterDealerId).map(o => o.id);
-                const allDevices = DeviceDB.filter(d => d.belongDealerId === masterDealerId || childDealerIds.includes(d.belongDealerId));
-                const found = allDevices.find(d => d.sn === targetSn);
-                
-                if (found) {
-                    nameInput.value = found.name;
-                    locInput.value = found.loc;
-                }
-            }
-        }
-
-        // 智能下发派单逻辑
-        function executeLeaseDispatch() {
-            const selectSn = document.getElementById('leaseSelectSn').value;
-            const cardType = document.getElementById('leaseCardType').value;
-            const devName = document.getElementById('leaseDeviceName').value.trim();
-            const newLoc = document.getElementById('leaseNewLoc').value.trim();
-
-            if (!devName) { alert("识别设备名称不能为空！"); return; }
-            if (!newLoc) { alert("部署物理位置大区不能为空！"); return; }
-
-            if (selectSn === "NONE") {
-                const mockNewSn = "SN-FT-" + Math.floor(100000 + Math.random() * 900000);
-                const newDeviceObj = {
-                    name: devName,
-                    sn: mockNewSn,
-                    leaseType: cardType,
-                    loc: newLoc,
-                    belongDealerId: selectedSubDealerId ? selectedSubDealerId : masterDealerId,
-                    pv_in: 400, pv_day: 5.5, pv_mon: 130, pv_yr: 1.5,
-                    ac_p: 300, load_day: 4.8, load_mon: 115, load_yr: 1.3,
-                    soc: 90, soh: 99, feePaid: cardType === 'Monthly' ? "350" : (cardType === 'Quarterly' ? "950" : "3200"),
-                    lng: 8.65, lat: 12.11,
-                    leaseRemain: cardType === 'Monthly' ? '28 Days left' : (cardType === 'Quarterly' ? '89 Days left' : '364 Days left')
-                };
-                DeviceDB.push(newDeviceObj);
-                alert(`[Faith Tech 全球分发完成]\n已虚拟向指定离网区域派发新机。\n分配系统SN编码：${mockNewSn}\n落地区域：【${newLoc}】\n首发解锁卡：${cardType}`);
-            } else {
-                const foundInDb = DeviceDB.find(d => d.sn === selectSn);
-                if (foundInDb) {
-                    foundInDb.name = devName; 
-                    foundInDb.leaseType = cardType;
-                    if (cardType === 'Monthly') foundInDb.leaseRemain = '28 Days left';
-                    else if (cardType === 'Quarterly') foundInDb.leaseRemain = '89 Days left';
-                    else if (cardType === 'Yearly') foundInDb.leaseRemain = '364 Days left';
-                }
-                alert(`[Faith Tech 既有资产PAYG指令刷新]\n硬件终端：${devName} (${selectSn})\n锁机合约策略成功变更为：${cardType}`);
-            }
-
-            renderDynamicDashboard(); 
-        }
-
-        // 统一渲染核心控制洗涤器
-        function renderDynamicDashboard() {
-            if (!currentMaster) {
-                alert("无合法身份大区大凭证");
-                return;
-            }
-
-            let filteredDevices = [];
-            const childDealerIds = DealerDB.filter(o => o.parentId === masterDealerId).map(o => o.id);
-            const regionAllDevices = DeviceDB.filter(d => d.belongDealerId === masterDealerId || childDealerIds.includes(d.belongDealerId));
-
-            if (selectedSubDealerId) {
-                filteredDevices = DeviceDB.filter(d => d.belongDealerId === selectedSubDealerId);
-                const subInfo = DealerDB.find(o => o.id === selectedSubDealerId);
-                document.getElementById('scopeDisplay').innerText = `已切入网点沙箱: ${subInfo ? subInfo.name : ''} (${filteredDevices.length} UNITS)`;
-                
-                document.getElementById('filterNotification').className = "filter-status-bar";
-                document.getElementById('filterNotification').style.display = "flex";
-                document.getElementById('filterNotification').innerHTML = `
-                    <span>⚡ <strong>当前正处于穿透沙箱视角：</strong>仅呈现二级商【${subInfo ? subInfo.name : ''}】下辖的资产数据</span>
-                    <button class="clear-filter-btn" onclick="clearSubFilter()">解除闭锁·返回大区</button>
-                `;
-            } else {
-                filteredDevices = regionAllDevices;
-                document.getElementById('scopeDisplay').innerText = `全大区资产合并总合 (${filteredDevices.length} UNITS)`;
-                document.getElementById('filterNotification').style.display = "none";
-            }
-
-            const selectEl = document.getElementById('leaseSelectSn');
-            const prevSelectedVal = selectEl.value;
-            let optionsHtml = `<option value="NONE">无（全新硬件出厂分发）</option>`;
-            optionsHtml += regionAllDevices.map(d => `<option value="${d.sn}">${d.sn} [${d.loc}]</option>`).join('');
-            selectEl.innerHTML = optionsHtml;
-            
-            if (prevSelectedVal && (prevSelectedVal === "NONE" || regionAllDevices.some(d => d.sn === prevSelectedVal))) {
-                selectEl.value = prevSelectedVal;
-            } else {
-                selectEl.value = "NONE"; 
-            }
-            syncLeaseName();
-
-            document.getElementById('dealerName').innerText = `${currentMaster.name} / HUB CONTROL`;
+            document.getElementById('dealerName').innerText = `${currentMaster.name} (${currentMaster.id})`;
             document.getElementById('dealerAccount').innerText = `ACCOUNT: ${currentMaster.account}`;
-            document.getElementById('dealerLocation').innerText = `大区物理归属: ${currentMaster.loc}`;
+            document.getElementById('dealerLocation').innerText = `大区物理归属: ${currentMaster.location}`;
 
-            let pvRtSum = 0, pvDaySum = 0, pvMonSum = 0, pvYrSum = 0;
-            let loadRtSum = 0, loadDaySum = 0, loadMonSum = 0, loadYrSum = 0;
-            let totalFinanceCNY = 0, totalFinanceUSD = 0;
+            // 获取过滤集合
+            const subIds = DealerDB.filter(o => o.parentId === currentMaster.id).map(o => o.id);
+            let filteredDevices = DeviceDB.filter(d => d.belongDealerId === currentMaster.id || subIds.includes(d.belongDealerId));
+            
+            if(selectedSubDealerId) {
+                filteredDevices = filteredDevices.filter(d => d.belongDealerId === selectedSubDealerId);
+            }
+
+            // 计算核心大区微网实时及累计数据
+            let finalPvRt = 0, finalPvDay = 0, finalPvMon = 0, finalPvYr = 0;
+            let finalLoadRt = 0, finalLoadDay = 0, finalLoadMon = 0, finalLoadYr = 0;
+            let finalFinance = 0;
+            let carbonToday = 0, carbonMon = 0, carbonTotal = 0;
 
             filteredDevices.forEach(d => {
-                pvRtSum += d.pv_in; pvDaySum += d.pv_day; pvMonSum += d.pv_mon; pvYrSum += d.pv_yr;
-                loadRtSum += d.ac_p; loadDaySum += d.load_day; loadMonSum += d.load_mon; loadYrSum += d.load_yr;
+                finalPvRt += d.pv_p; finalPvDay += d.pv_day; finalPvMon += d.pv_mon; finalPvYr += d.pv_yr;
+                finalLoadRt += (d.ac_p + d.dc_p); finalLoadDay += d.load_day; finalLoadMon += d.load_mon; finalLoadYr += d.load_yr;
                 
-                const cnyFee = parseFloat(d.feePaid);
-                totalFinanceCNY += cnyFee;
-                totalFinanceUSD += (cnyFee / 7.2);
+                let rate = d.leaseType === 'Yearly' ? 55 : (d.leaseType === 'Quarterly' ? 14 : 5);
+                finalFinance += rate;
+                carbonToday += d.load_day * 0.0006;
+                carbonMon += d.load_mon * 0.0006;
+                carbonTotal += d.load_yr * 0.0006;
             });
 
-            const finalPvDay = pvDaySum.toFixed(2);
-            const finalPvMon = pvMonSum.toFixed(2);
-            const finalPvYr = pvYrSum.toFixed(2);
-            const finalPvTotal = (pvYrSum * 1.35).toFixed(2);
-
-            const finalLoadDay = loadDaySum.toFixed(2);
-            const finalLoadMon = loadMonSum.toFixed(2);
-            const finalLoadYr = loadYrSum.toFixed(2);
-            const finalLoadTotal = (loadYrSum * 1.38).toFixed(2);
-
-            const carbonToday = (parseFloat(finalLoadDay) * 0.0006);
-            const carbonMon = (parseFloat(finalLoadMon) * 0.0006);
-            const carbonTotal = (parseFloat(finalLoadTotal) * 1000 * 0.0006);
+            // 渲染模块1：实时微电网多维统计核心看板
+            const statsData = [
+                { e: 'REGIONAL PV REALTIME', l: '大区PV实时发电机组总功率', v: finalPvRt, u: 'W', t: 'pv' },
+                { e: 'REGIONAL PV DAILY', l: '大区PV今日累计发电总量', v: finalPvDay.toFixed(2), u: 'kWh', t: 'pv' },
+                { e: 'REGIONAL PV MONTHLY', l: '大区PV当月合并发电总量', v: finalPvMon.toFixed(2), u: 'kWh', t: 'pv' },
+                { e: 'REGIONAL PV ANNUAL', l: '大区PV全年在籍累计发电量', v: finalPvYr.toFixed(2), u: 'kWh', t: 'pv' },
+                { e: 'REGIONAL REALTIME LOAD', l: '大区负载侧实时运行总功率', v: finalLoadRt, u: 'W', t: 'usage' },
+                { e: 'REGIONAL LOAD DAILY', l: '大区日累计放电/耗电总量', v: finalLoadDay.toFixed(2), u: 'kWh', t: 'usage' },
+                { e: 'REGIONAL LOAD MONTHLY', l: '大区月度累计合并耗电量', v: finalLoadMon.toFixed(2), u: 'kWh', t: 'usage' },
+                { e: 'REGIONAL LOAD ANNUAL', l: '大区年度累计在籍总耗电量', v: finalLoadYr.toFixed(2), u: 'kWh', t: 'usage' }
+            ];
 
             document.getElementById('statsContainer').innerHTML = `
                 <div class="summary-row row-pv">
-                    <div class="metric-card"><div class="metric-label">实时PV总输入功率</div><div class="metric-value">${pvRtSum}<span>W</span></div></div>
-                    <div class="metric-card"><div class="metric-label">范围当日累计发电</div><div class="metric-value">${finalPvDay}<span>kWh</span></div></div>
-                    <div class="metric-card"><div class="metric-label">范围当月累计发电</div><div class="metric-value">${finalPvMon}<span>kWh</span></div></div>
-                    <div class="metric-card"><div class="metric-label">范围年度累计发电</div><div class="metric-value">${finalPvYr}<span>MWh</span></div></div>
-                    <div class="metric-card"><div class="metric-label">范围历史合并发电</div><div class="metric-value">${finalPvTotal}<span>MWh</span></div></div>
+                    ${statsData.slice(0,4).map(d => `<div class="metric-card"><div class="metric-label">${d.l}</div><div class="metric-value">${d.v}<span>${d.u}</span></div></div>`).join('')}
                 </div>
                 <div class="summary-row row-usage">
-                    <div class="metric-card"><div class="metric-label">实时负载用电总功率</div><div class="metric-value">${loadRtSum}<span>W</span></div></div>
-                    <div class="metric-card"><div class="metric-label">范围当日累计放电</div><div class="metric-value">${finalLoadDay}<span>kWh</span></div></div>
-                    <div class="metric-card"><div class="metric-label">范围当月累计放电</div><div class="metric-value">${finalLoadMon}<span>kWh</span></div></div>
-                    <div class="metric-card"><div class="metric-label">范围年度累计放电</div><div class="metric-value">${finalLoadYr}<span>MWh</span></div></div>
-                    <div class="metric-card"><div class="metric-label">范围历史合并放电</div><div class="metric-value">${finalLoadTotal}<span>MWh</span></div></div>
+                    ${statsData.slice(4,8).map(d => `<div class="metric-card"><div class="metric-label">${d.l}</div><div class="metric-value">${d.v}<span>${d.u}</span></div></div>`).join('')}
                 </div>
             `;
 
-            document.getElementById('o-finance').innerHTML = `$ ${totalFinanceUSD.toFixed(2)}<span>USD</span>`;
+            // 渲染概要财务与环境看板
+            document.getElementById('o-finance').innerHTML = `$ ${finalFinance.toFixed(2)}<span>USD</span>`;
             document.getElementById('o-carbon-day').innerHTML = `${carbonToday.toFixed(4)}<span>Tons</span>`;
             document.getElementById('o-carbon-total').innerHTML = `${carbonTotal.toFixed(2)}<span>Tons</span>`;
-            document.getElementById('o-device-count').innerText = `${filteredDevices.length} UNITS`;
+            document.getElementById('o-device-count').innerHTML = `${filteredDevices.length}<span>UNITS</span>`;
 
-            document.getElementById('f-card-count').innerHTML = `${filteredDevices.length}<span>UNITS</span>`;
-            document.getElementById('f-card-cny').innerHTML = `￥ ${totalFinanceCNY.toFixed(2)}<span>元</span>`;
-            document.getElementById('f-card-usd').innerHTML = `$ ${totalFinanceUSD.toFixed(2)}<span>美金</span>`;
-
-            const subDealers = DealerDB.filter(o => o.parentId === masterDealerId);
-            document.getElementById('subDealerTableBody').innerHTML = subDealers.map(sd => {
-                const isCurrentActive = selectedSubDealerId === sd.id;
+            // 渲染模块2：二级网点
+            const currentSubs = DealerDB.filter(o => o.parentId === currentMaster.id);
+            document.getElementById('subDealerTableBody').innerHTML = currentSubs.map(s => {
+                const count = DeviceDB.filter(d => d.belongDealerId === s.id).length;
                 return `
-                    <tr style="${isCurrentActive ? 'background: rgba(0, 255, 255, 0.08);' : ''}">
-                        <td><span class="level-badge" style="background:rgba(0,255,255,0.15); color:#00ffff;">加盟二级</span></td>
-                        <td style="font-weight:700; color:#fff;">${sd.name} ${isCurrentActive ? ' <span style="color:#00ffa2">(当前锁死)</span>':''}</td>
-                        <td style="color:#f1c40f; font-family:monospace;">${sd.account}</td>
-                        <td>${sd.loc}</td>
-                        <td style="color:#00ffa2; font-weight:700;">10 UNITS</td>
-                        <td>
-                            ${isCurrentActive ? 
-                                `<button onclick="clearSubFilter()" style="background:rgba(255,51,102,0.15); border:1px solid #ff3366; color:#ff3366; padding:5px 10px; cursor:pointer; border-radius:4px; font-size:11px; font-weight:600;">解开锁死</button>` : 
-                                `<button onclick="filterBySubDealer('${sd.id}')" style="background:rgba(0,255,255,0.1); border:1px solid #00ffff; color:#00ffff; padding:5px 10px; cursor:pointer; border-radius:4px; font-size:11px; font-weight:600;">下钻穿透网点</button>`
-                            }
-                        </td>
+                    <tr>
+                        <td><span class="level-badge" style="background:rgba(0,255,162,0.15); color:#00ffa2; border:1px solid #00ffa2;">二级商 L2</span></td>
+                        <td style="font-weight:700; color:#fff;">${s.name}</td>
+                        <td style="font-family:monospace; color:#00ffff;">${s.account}</td>
+                        <td>${s.location}</td>
+                        <td style="font-weight:bold; color:#00ffa2;">${count} 台分布式硬件</td>
+                        <td><button class="clear-filter-btn" style="border-color:#00ffff; color:#00ffff;" onclick="filterBySubDealer('${s.id}', '${s.name}')">🎯 穿透锁定数据</button></td>
                     </tr>
                 `;
             }).join('');
 
-            // TAB 3 全量设备表格（已新增【动作】列和跳转按钮钩子）
+            // 渲染模块3：全量资产设备明细列表
             document.getElementById('deviceTableBody').innerHTML = filteredDevices.map(d => `
                 <tr>
                     <td style="font-weight:700; color:#fff;">${d.name}</td>
-                    <td style="color:#00ffff; font-family:monospace;">${d.sn}</td>
-                    <td><span style="color:#f1c40f; font-size:12px; font-weight:600;">${d.leaseType}</span></td>
-                    <td>${d.loc}</td>
-                    <td><span style="color:#00ffa2">● ONLINE</span></td>
-                    <td style="font-weight:700; color:#00ffff;">${d.soc}%</td>
-                    <td>${d.soh}%</td>
-                    <td>
-                        <button onclick="location.href='device.html?sn=${d.sn}'" style="background:rgba(0,255,255,0.1); border:1px solid #00ffff; color:#00ffff; padding:4px 8px; cursor:pointer; border-radius:4px; font-size:11px; font-weight:600;">
-                            终端详情
-                        </button>
-                    </td>
+                    <td style="font-family:monospace; color:#aaa;">${d.sn}</td>
+                    <td><span class="level-badge" style="background:rgba(241,196,15,0.1); color:#f1c40f; border:1px solid rgba(241,196,15,0.3);">${d.leaseType} PAYG</span></td>
+                    <td>${d.location}</td>
+                    <td><span style="color:#00ffa2;">● 正常实时并网</span></td>
+                    <td style="font-weight:700; font-family:monospace; color:#00ffff;">${d.soc} %</td>
+                    <td style="font-weight:500; font-family:monospace; color:#00ffa2;">${d.soh} %</td>
+                    <td><button class="clear-filter-btn" style="border-color:#00ffa2; color:#00ffa2;" onclick="location.href='device.html?sn=${d.sn}'">📊 深入核心遥测</button></td>
                 </tr>
             `).join('');
 
+            // 渲染模块4：高精地理围栏监测明细列表
             document.getElementById('geofenceTableBody').innerHTML = filteredDevices.map(d => `
                 <tr>
                     <td style="font-weight:700; color:#fff;">${d.name}</td>
-                    <td style="color:#00ffff; font-family:monospace;">${d.sn}</td>
-                    <td>${d.loc}区域</td>
-                    <td style="color:#00ffff; font-family:monospace;">${d.lng}° E</td>
-                    <td style="color:#00ffff; font-family:monospace;">${d.lat}° N</td>
-                    <td><span style="background:rgba(0,255,162,0.15); color:#00ffa2; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold;">✔ ACTIVE</span></td>
+                    <td style="font-family:monospace; color:#aaa;">${d.sn}</td>
+                    <td>${d.location}</td>
+                    <td style="font-family:monospace; color:#00ffff;">${parseFloat(d.lng).toFixed(5)}</td>
+                    <td style="font-family:monospace; color:#00ffff;">${parseFloat(d.lat).toFixed(5)}</td>
+                    <td><span style="color:#00ffa2; font-weight:600; background:rgba(0,255,162,0.08); padding:3px 8px; border-radius:4px; border:1px solid rgba(0,255,162,0.2);">🔒 围栏内安全运行</span></td>
                 </tr>
             `).join('');
 
-            document.getElementById('leasingTableBody').innerHTML = filteredDevices.map(d => `
-                <tr>
-                    <td style="font-weight:700; color:#fff;">${d.name}</td>
-                    <td style="color:#00ffff; font-family:monospace;">${d.sn}</td>
-                    <td><span style="border:1px solid rgba(0,255,255,0.4); color:#00ffff; padding:2px 6px; border-radius:4px; font-size:12px;">${d.leaseType}</span></td>
-                    <td style="color:#f1c40f; font-weight:700;">$ ${(parseFloat(d.feePaid)/7.2).toFixed(2)}</td>
-                    <td style="color:#00ffff; font-weight:600;">${d.leaseRemain}</td>
-                </tr>
-            `).join('');
+            // 渲染模块5：PAYG 智能锁到期矩阵与分配中心
+            document.getElementById('leasingTableBody').innerHTML = filteredDevices.map(d => {
+                let fee = d.leaseType === 'Yearly' ? 55 : (d.leaseType === 'Quarterly' ? 14 : 5);
+                return `
+                    <tr>
+                        <td style="font-weight:700;">${d.name}</td>
+                        <td style="font-family:monospace; color:#00ffff;">${d.sn}</td>
+                        <td><span style="color:#f1c40f; font-weight:600;">${d.leaseType} Contract</span></td>
+                        <td style="color:#00ffa2; font-weight:700; font-family:monospace;">$ ${fee.toFixed(2)} USD</td>
+                        <td style="font-family:monospace; font-weight:500; color:#fff;">⏳ 剩 ${d.leaseRemain}</td>
+                    </tr>
+                `;
+            }).join('');
 
-            document.getElementById('financeTableBody').innerHTML = filteredDevices.map(d => `
-                <tr>
-                    <td style="font-weight:700; color:#fff;">${d.name}</td>
-                    <td style="color:#00ffff; font-family:monospace;">${d.sn}</td>
-                    <td style="font-family:monospace;">￥ ${parseFloat(d.feePaid).toFixed(2)}</td>
-                    <td style="color:#f1c40f; font-weight:700; font-family:monospace;">$ ${(parseFloat(d.feePaid)/7.2).toFixed(2)}</td>
-                    <td style="color:#00ffa2; font-size:12px; font-weight:600;">SUCCESS</td>
-                </tr>
-            `).join('');
+            // 渲染模块6：财务数据自动清算对账面板
+            document.getElementById('f-card-count').innerHTML = `${filteredDevices.length}<span>UNITS</span>`;
+            document.getElementById('f-card-usd').innerHTML = `$ ${finalFinance.toFixed(2)}<span>美金</span>`;
+            document.getElementById('f-card-cny').innerHTML = `￥ ${(finalFinance * 7.2).toFixed(2)}<span>元</span>`;
 
-            document.getElementById('c-load-day').innerHTML = `${finalLoadDay}<span>kWh</span>`;
+            document.getElementById('financeTableBody').innerHTML = filteredDevices.map(d => {
+                let sFee = d.leaseType === 'Yearly' ? 55 : (d.leaseType === 'Quarterly' ? 14 : 5);
+                return `
+                    <tr>
+                        <td style="font-weight:700; color:#fff;">${d.name}</td>
+                        <td style="font-family:monospace; color:#aaa;">${d.sn}</td>
+                        <td style="color:#f1c40f; font-weight:700; font-family:monospace;">￥ ${(sFee * 7.2).toFixed(2)} 元</td>
+                        <td style="color:#00ffa2; font-weight:700; font-family:monospace;">$ ${sFee.toFixed(2)} USD</td>
+                        <td><span style="color:#00ffa2;">✔ 已结清汇算</span></td>
+                    </tr>
+                `;
+            }).join('');
+
+            // 渲染模块7：碳排放联动审计大盘
+            document.getElementById('c-load-day').innerHTML = `${finalLoadDay.toFixed(2)}<span>kWh</span>`;
             document.getElementById('c-carbon-day').innerHTML = `${carbonToday.toFixed(4)}<span>Tons</span>`;
             document.getElementById('c-carbon-mon').innerHTML = `${carbonMon.toFixed(2)}<span>Tons</span>`;
             document.getElementById('c-carbon-total').innerHTML = `${carbonTotal.toFixed(2)}<span>Tons</span>`;
@@ -628,7 +533,65 @@
             }).join('');
         }
 
-        window.onload = () => renderDynamicDashboard();
+        // 初始化租赁管理表单选项
+        function initLeaseFormOptions() {
+            const subIds = DealerDB.filter(o => o.parentId === currentMaster.id).map(o => o.id);
+            const myDevices = DeviceDB.filter(d => d.belongDealerId === currentMaster.id || subIds.includes(d.belongDealerId));
+            
+            const selector = document.getElementById('leaseSelectSn');
+            if(!selector) return;
+
+            selector.innerHTML = myDevices.map(d => `<option value="${d.sn}">${d.sn} (${d.name})</option>`).join('');
+            syncLeaseName();
+        }
+
+        function syncLeaseName() {
+            const snVal = document.getElementById('leaseSelectSn').value;
+            const target = DeviceDB.find(d => d.sn === snVal);
+            if(target) {
+                document.getElementById('leaseDeviceName').value = target.name;
+                document.getElementById('leaseNewLoc').value = target.location;
+                document.getElementById('leaseNewLoc').disabled = true;
+            }
+        }
+
+        // 租赁下发变更动作
+        function executeLeaseDispatch() {
+            const snVal = document.getElementById('leaseSelectSn').value;
+            const cardVal = document.getElementById('leaseCardType').value;
+            const nameVal = document.getElementById('leaseDeviceName').value;
+            
+            if(!snVal) {
+                alert('请先选择一个有效的硬件资产产品SN编号！');
+                return;
+            }
+
+            // 更新局部动态内存数据闭环
+            const matchIndex = DeviceDB.findIndex(d => d.sn === snVal);
+            if(matchIndex !== -1) {
+                DeviceDB[matchIndex].leaseType = cardVal;
+                DeviceDB[matchIndex].name = nameVal;
+                
+                if(cardVal === 'Yearly') { DeviceDB[matchIndex].leaseRemain = "365 天"; }
+                else if(cardVal === 'Quarterly') { DeviceDB[matchIndex].leaseRemain = "90 天"; }
+                else { DeviceDB[matchIndex].leaseRemain = "30 天"; }
+
+                localStorage.setItem('FAITH_TRACK_DYNAMIC_DEVICES', JSON.stringify(DeviceDB));
+                alert(`[Faith Tech 级联云锁系统提示]\n成功向分布式硬件下发智能锁合约！\n目标终端SN: ${snVal}\n绑定PAYG级别: ${cardVal} 授信合约锁\n状态: 变更成功，即时同步生效`);
+                
+                renderAllViews();
+            }
+        }
+
+        window.onload = function() {
+            // 支持动态读取存储
+            const cachedDevices = localStorage.getItem('FAITH_TRACK_DYNAMIC_DEVICES');
+            if (cachedDevices) {
+                try { DeviceDB = JSON.parse(cachedDevices); } catch(e) { console.error(e); }
+            }
+            renderAllViews();
+            initLeaseFormOptions();
+        }
     </script>
 </body>
 </html>
