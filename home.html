@@ -37,7 +37,7 @@
         .menu-item .icon { margin-right: 12px; font-size: 16px; }
 
         /* 主内容区样式 */
-        .main-content { margin-left: 260px; flex: 1; padding: 25px 30px; display: flex; flex-direction: column; }
+        .main-content { margin-left: 260px; flex: 1; padding: 25px 30px; display: flex; flex-direction: column; width: calc(100% - 260px); }
         .panel { background: rgba(10, 18, 38, 0.7); border: 1px solid rgba(0, 255, 255, 0.15); backdrop-filter: blur(20px); border-radius: 20px; padding: 24px; margin-bottom: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
         .header { display: flex; justify-content: space-between; align-items: flex-end; padding: 0 10px 25px 10px; }
         .header-title h1 { font-size: 26px; font-weight: 800; color: #fff; }
@@ -90,14 +90,32 @@
         .total-online-card .number { font-size: 36px; font-weight: 900; color: #f1c40f; text-shadow: 0 0 20px rgba(241, 196, 15, 0.3); }
         .total-online-card .unit { font-size: 14px; color: #f1c40f; margin-left: 6px; }
         
-        /* 表格样式修正 */
-        .table-responsive { width: 100%; overflow-x: auto; margin-bottom: 15px; }
-        .table-responsive::-webkit-scrollbar { height: 6px; }
-        .table-responsive::-webkit-scrollbar-thumb { background: rgba(0,255,255,0.2); border-radius: 3px; }
+        /* 核心：表单响应式与横向滚动机制 */
+        .table-responsive {
+            width: 100%; 
+            overflow-x: auto; 
+            -webkit-overflow-scrolling: touch; /* 支持移动端平滑滚动 */
+            margin-bottom: 15px; 
+            border: 1px solid rgba(0, 255, 255, 0.15); /* 给容器增加边框明确滚动区域 */
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 自定义高可见度的滚动条样式 */
+        .table-responsive::-webkit-scrollbar { height: 12px; }
+        .table-responsive::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); border-radius: 6px; }
+        .table-responsive::-webkit-scrollbar-thumb { background: rgba(0,255,255,0.4); border-radius: 6px; border: 2px solid rgba(10,18,38,0.7); }
+        .table-responsive::-webkit-scrollbar-thumb:hover { background: rgba(0,255,255,0.8); }
+
         table { width: 100%; border-collapse: collapse; min-width: max-content; }
         th { text-align: left; padding: 12px 14px; font-size: 13px; color: rgba(255,255,255,0.4); border-bottom: 1px solid rgba(0, 255, 255, 0.15); background: rgba(0, 255, 255, 0.02); white-space: nowrap; }
         td { padding: 12px 14px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.05); color: #ddd; white-space: nowrap; }
         tr:hover td { background: rgba(0, 255, 255, 0.04); }
+        
+        /* 针对数据日志极宽表格的强制规则 */
+        .log-scroll-container table {
+            min-width: 2200px !important; /* 强制产生横向滚动 */
+        }
         
         .pagination-container { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 20px; }
         .p-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #ccc; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; transition: 0.2s; }
@@ -273,7 +291,8 @@
                         <button class="export-btn" onclick="exportLogs('all')" style="border-color:#00ffa2; color:#00ffa2;">🗂️ 导出系统全部</button>
                     </div>
                 </div>
-                <div class="table-responsive">
+                
+                <div class="table-responsive log-scroll-container">
                     <table>
                         <thead>
                             <tr>
@@ -300,6 +319,7 @@
                         <tbody id="logTableBody"></tbody>
                     </table>
                 </div>
+                
                 <div class="pagination-container">
                     <button class="p-btn" id="logPrevBtn">上一页</button>
                     <div id="logPageNumbers" style="display:flex; gap:5px;"></div>
