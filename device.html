@@ -2,11 +2,47 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <title>Faith Technology - Energy Cloud Dashboard</title>
+    
+    <script>
+        (function() {
+            // 1. 预先解析 URL 参数
+            const params = new URLSearchParams(window.location.search);
+            const currentSn = params.get('sn') || 'FT-EC-2026-001';
+            
+            // 2. 尝试从本地缓存获取最新的数据资产矩阵
+            let checkDB = [];
+            const localRaw = localStorage.getItem('FAITH_TRACK_DYNAMIC_DEVICES');
+            if (localRaw) { try { checkDB = JSON.parse(localRaw); } catch(e){} }
+            
+            // 3. 寻找匹配的设备
+            const currentDevice = checkDB.find(d => d.sn === currentSn);
+            
+            if (currentDevice) {
+                let dId = currentDevice.belongDealerId || currentDevice.dealerId || currentDevice.belongDealer || '';
+                dId = String(dId).trim();
+                
+                // 4. 核心条件：如果满足直营大盘设备特征
+                if (!dId || dId === '' || dId === 'null' || dId === 'undefined' || dId === '0' || dId.toUpperCase() === 'SYSTEM' || dId.includes('直营') || dId.includes('大盘')) {
+                    console.warn("【熔断拦截】检测到大盘直营设备，拒绝任何后续加载，防止幽灵跳转！");
+                    
+                    // 如果当前 URL 错误地包含了 dealer_hub 相关的线索，或者由于未知硬编码逻辑导致空白
+                    // 动态拦截所有可能产生 location 篡改的方法
+                    const targetHome = 'home.html';
+                    
+                    // 彻底封死当前页面对 dealer_hub.html 的任何访问尝试
+                    if (window.location.href.includes('dealer_hub.html')) {
+                        window.stop(); 
+                        window.location.replace(targetHome);
+                    }
+                }
+            }
+        })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -31,7 +67,7 @@
         .header { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; }
         .header-left h1 { font-size: 24px; font-weight: 800; background: linear-gradient(90deg, #fff, #00ffff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; cursor: pointer; }
         .header-left-box { display: flex; align-items: center; gap: 15px; }
-        .back-hub-btn { background: rgba(0, 255, 255, 0.1); border: 1px solid rgba(0, 255, 255, 0.3); color: #00ffff; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; text-decoration: none; }
+        .back-hub-btn { background: rgba(0, 255, 255, 0.1); border: 1px solid rgba(0, 255, 255, 0.3); color: #00ffff; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; border: none; }
         .back-hub-btn:hover { background: #00ffff; color: #050816; box-shadow: 0 0 10px rgba(0,255,255,0.4); }
         .header-right { text-align: right; }
         .product-sn { font-size: 13px; color: #00ffff; font-weight: 700; letter-spacing: 1px; margin-bottom: 4px; opacity: 0.8; }
@@ -93,7 +129,7 @@
                 <h1 onclick="location.href='home.html'" style="cursor:pointer">ENERGY CLOUD DASHBOARD</h1>
                 <p style="font-size: 10px; color: rgba(255,255,255,0.3); margin-top: 2px;">斐石科技 Faith Technology | 实时电力资产监控中心</p>
             </div>
-            <a id="backToHubBtn" class="back-hub-btn" href="javascript:void(0);">⬅ 返回网点资产大屏</a>
+            <button id="backToHubBtn" class="back-hub-btn">⬅ 返回网点资产大屏</button>
         </div>
         <div class="header-right">
             <div class="product-sn" id="displaySN">SN: LOADING...</div>
@@ -119,7 +155,7 @@
                 <div class="countdown-circle">
                     <div style="font-size: 11px; color: #00ffff; font-weight: 600; margin-bottom:6px;">LOCAL TIME</div>
                     <div class="countdown-time" id="localTimeDisplay" style="font-family: monospace; color: #00ffff;">--:--:--</div>
-                    <div style="font-size: 10px; color: rgba(255,255,255,0.4); margin-top:6px;">本地时间</div>
+                    <div style="font-size: 10px; color: rgba(255,255,255,0.4); margin-top:6px;">国家本地时间</div>
                 </div>
 
                 <div class="countdown-circle green-theme">
@@ -154,7 +190,7 @@
                         <th>设备名称</th>
                         <th>设备 SN 码</th>
                         <th>UTC 时间</th>
-                        <th>本地时间</th>
+                        <th>本地时间 (国家定位)</th>
                         <th>纬度</th>
                         <th>经度</th>
                         <th>设备在线时长</th>
@@ -198,22 +234,62 @@
         const deviceData = activeDeviceDB.find(d => d.sn === sn) || activeDeviceDB[0];
         document.getElementById('displaySN').innerText = `SN: ${deviceData.sn}`;
 
+        function checkIsSystemDirect() {
+            if (!deviceData) return true;
+            let dId = deviceData.belongDealerId || deviceData.dealerId || deviceData.belongDealer || '';
+            dId = String(dId).trim();
+            
+            // 全网真实检验：判断当前归属ID在代理商库中是否存在
+            let dealerExists = false;
+            if (typeof DealerDB !== 'undefined') {
+                dealerExists = DealerDB.some(o => o.id === dId);
+            }
+            
+            return (
+                !dId || 
+                dId === '' || 
+                dId === 'null' || 
+                dId === 'undefined' || 
+                dId === '0' ||
+                dId.toUpperCase() === 'SYSTEM' || 
+                dId.includes('直营') ||
+                dId.includes('大盘') ||
+                !dealerExists // 核心：如果找不到经销商信息，强制认为是直营大盘，跳回 home
+            );
+        }
+
+        // ================= 返回按钮行为映射 =================
         const backBtn = document.getElementById('backToHubBtn');
-        if (backBtn && deviceData && deviceData.belongDealerId) {
-            backBtn.onclick = function() {
-                location.href = `dealer_hub.html?id=${deviceData.belongDealerId}`;
+        if (backBtn) {
+            backBtn.onclick = function(e) {
+                if (e && e.preventDefault) { e.preventDefault(); }
+                if (e && e.stopPropagation) { e.stopPropagation(); }
+                
+                if (checkIsSystemDirect()) {
+                    window.location.replace('home.html');
+                } else {
+                    let dId = deviceData.belongDealerId || deviceData.dealerId || deviceData.belongDealer || '';
+                    dId = String(dId).trim();
+                    
+                    // 智能路由防空白页：如果是二级加盟商(S级别)，返回给它上级的主体大区 HUB
+                    let targetHubId = dId;
+                    if (typeof DealerDB !== 'undefined') {
+                        let dealerObj = DealerDB.find(o => o.id === dId);
+                        if (dealerObj && dealerObj.level === 2) {
+                            targetHubId = dealerObj.parentId;
+                        }
+                    }
+                    window.location.replace(`dealer_hub.html?id=${encodeURIComponent(targetHubId)}`);
+                }
+                return false;
             };
-        } else if (backBtn) {
-            backBtn.href = "dealer_hub.html?id=M001";
         }
 
         const deviceLat = parseFloat(deviceData.lat) || 1.28;
         const deviceLng = parseFloat(deviceData.lng) || 103.81;
+        const timezoneOffsetHours = Math.round(deviceLng / 15);
 
-        // 根据定位计算光照强度基准（W/m²）
         const mockIrradiance = Math.max(100, Math.floor(1100 - (Math.abs(deviceLat) * 12) + (Math.random() * 60 - 30)));
-
-        // ================= 核心物理参数完全对齐计算 =================
         const pv_in = Math.min(500, Math.floor(mockIrradiance * 0.52 * (0.95 + Math.random() * 0.05)));
         const ac_p = Math.min(500, Math.floor(180 + Math.random() * 160));
         const dc_p = Math.min(35, Math.floor(12 + Math.random() * 8));
@@ -228,10 +304,7 @@
         const dis = parseFloat((worktime * 0.23).toFixed(2));
         const cycle = Math.floor(dis / 1.004);
 
-        // 修改1: 电池健康度在500次以内都是99%
         const displaySoh = (cycle <= 500) ? 99 : Math.max(70, Math.floor(99 - (cycle - 500) * 0.05));
-
-        // 修改2: 电芯温度，工作的时候在30~45°C 之间
         const displayTemp = Math.floor(30 + Math.random() * 15);
 
         const pv_yr = parseFloat((dis * 1.06).toFixed(2)); 
@@ -248,24 +321,25 @@
         }).addTo(map);
         centerMarker.bindPopup(`<b>设备终端位置</b><br>SN: ${deviceData.sn}<br>坐标: ${deviceLng}, ${deviceLat}`).openPopup();
 
-        const securityAura = L.circle([deviceLat, deviceLng], {
+        L.circle([deviceLat, deviceLng], {
             radius: 1000, color: '#00ffff', weight: 2, opacity: 0.8, fillColor: '#00ffff', fillOpacity: 0.15
         }).addTo(map);
 
-        // ================= 租赁倒计时赋值 =================
         document.getElementById('leaseTypeLabel').innerText = deviceData.leaseType || '标准租赁';
         document.getElementById('timer').innerText = deviceData.leaseRemain || '0 天';
 
-        // ================= 实时时钟引擎 =================
         function updateClock() {
             const now = new Date();
-            const lh = String(now.getHours()).padStart(2, '0');
-            const lm = String(now.getMinutes()).padStart(2, '0');
-            const ls = String(now.getSeconds()).padStart(2, '0');
-            
             const uh = String(now.getUTCHours()).padStart(2, '0');
             const um = String(now.getUTCMinutes()).padStart(2, '0');
             const us = String(now.getUTCSeconds()).padStart(2, '0');
+            
+            const utcTimestamp = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds());
+            const geoLocalDate = new Date(utcTimestamp + (timezoneOffsetHours * 3600000));
+            
+            const lh = String(geoLocalDate.getUTCHours()).padStart(2, '0');
+            const lm = String(geoLocalDate.getUTCMinutes()).padStart(2, '0');
+            const ls = String(geoLocalDate.getUTCSeconds()).padStart(2, '0');
             
             document.getElementById('localTimeDisplay').innerText = `${lh}:${lm}:${ls}`;
             document.getElementById('utcTimeDisplay').innerText = `${uh}:${um}:${us}`;
@@ -273,7 +347,6 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        // 填充面板矩阵
         const statsData = [
             { e: 'PV INPUT', l: '实时PV功率', v: pv_in, u: 'W', t: 'input' },
             { e: 'DAY GENERATION', l: '日PV发电量', v: pv_day, u: 'kWh', t: 'input' },
@@ -288,7 +361,7 @@
             { e: 'BATTERY SOC', l: '电芯剩余容量', v: deviceData.soc, u: '%', t: 'battery' },
             { e: 'BATTERY SOH', l: '电池健康度', v: displaySoh, u: '%', t: 'battery' },
             { e: 'BATTERY TEMP', l: '电芯实时温度', v: displayTemp, u: '℃', t: 'battery' },
-            { i: 'CYCLE COUNT', l: '循环充放次数', v: cycle, u: '次', t: 'battery' },      
+            { e: 'CYCLE COUNT', l: '循环充放次数', v: cycle, u: '次', t: 'battery' },      
             { e: 'TOTAL DISCHARGE', l: '累计放电量', v: dis, u: 'kWh', t: 'battery' },      
             { e: 'SYSTEM TIME', l: '累计在线时长', v: runtime, u: 'h', t: '' },            
             { e: 'WORKING TIME', l: '工作时长', v: worktime, u: 'h', t: '' },              
@@ -319,70 +392,51 @@
             <div class="info-card"><div class="label">${m.l}</div><div class="value">${m.v}</div></div>
         `).join('');
 
-        // ================= 15分钟高频微网数据采集流水对齐逻辑 =================
+        // ================= 日志明细 =================
         let currentPage = 1;
         const pageSize = 10;
         let generatedLogs = [];
 
-        function formatDate(date) {
-            const y = date.getFullYear();
-            const m = String(date.getMonth() + 1).padStart(2, '0');
-            const d = String(date.getDate()).padStart(2, '0');
-            const hh = String(date.getHours()).padStart(2, '0');
-            const mm = String(date.getMinutes()).padStart(2, '0');
-            const ss = String(date.getSeconds()).padStart(2, '0');
+        function formatDateStringWithoutZone(date) {
+            const y = date.getUTCFullYear();
+            const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+            const d = String(date.getUTCDate()).padStart(2, '0');
+            const hh = String(date.getUTCHours()).padStart(2, '0');
+            const mm = String(date.getUTCMinutes()).padStart(2, '0');
+            const ss = String(date.getUTCSeconds()).padStart(2, '0');
             return `${y}-${m}-${d} ${hh}:${mm}:${ss}`;
         }
 
-        function generateMockLogs() {
+        function generateLogsList() {
             const logs = [];
-            const baseLocalTime = new Date('2026-06-01 15:15:00');
+            const baseUtc = new Date(Date.UTC(2026, 5, 1, 12, 0, 0));
             
             for (let i = 0; i < 100; i++) {
-                const localTime = new Date(baseLocalTime.getTime() - i * 15 * 60 * 1000);
-                const utcTime = new Date(localTime.getTime() - 8 * 3600 * 1000);
-                
-                const hour = localTime.getHours();
+                const rowUtcTime = new Date(baseUtc.getTime() - i * 15 * 60 * 1000);
+                const rowGeoLocalTime = new Date(rowUtcTime.getTime() + (timezoneOffsetHours * 3600000));
+                const hour = rowGeoLocalTime.getUTCHours();
                 const isDaylight = (hour >= 6 && hour <= 18);
                 
                 const mockCharge = isDaylight ? parseFloat((0.08 + Math.random() * 0.05).toFixed(4)) : 0;
                 const mockDischarge = parseFloat((0.03 + Math.random() * 0.04).toFixed(4));
-                
-                // 修改3&4: 增加采样数据项，并且全部设备认定为“离网”运行状态，相关电量归零
                 const mockOnlineHours = parseFloat((runtime - (i * 0.25)).toFixed(2));
-                const runStatus = '<span class="text-success">正常运行</span>';
-                const installTime = '2025-08-12';
-                const fuelBaseline = parseFloat((mockDischarge * 0.28).toFixed(4)); // 柴油/煤油替代消耗测算基准
-                const emissionFactor = 2.68; // 柴油发电机排放因子标准
-
-                const mockSelfUse = 0; // 离网状态：归 0
-                const mockGridFeed = 0; // 离网状态：归 0
-                const gridStatus = '<span class="text-danger">离网 (Off-grid)</span>'; // 离网状态固定
+                const fuelBaseline = parseFloat((mockDischarge * 0.28).toFixed(4));
                 
                 const mockSoc = Math.max(10, Math.min(100, Math.round(deviceData.soc * (0.95 + Math.sin(i / 10) * 0.05))));
-                
                 let dataQuality = '<span class="text-success">Good</span>';
-                if (i % 35 === 0) dataQuality = '<span class="text-warning">Suspect (Re-sync)</span>';
+                if (i > 0 && i % 35 === 0) dataQuality = '<span class="text-warning">Suspect</span>';
 
                 logs.push({
-                    name: deviceData.name,
-                    sn: deviceData.sn,
-                    utcTime: formatDate(utcTime),
-                    localTime: formatDate(localTime),
-                    lat: deviceLat.toFixed(4),
-                    lng: deviceLng.toFixed(4),
+                    name: deviceData.name, sn: deviceData.sn,
+                    utcTime: formatDateStringWithoutZone(rowUtcTime),
+                    localTime: formatDateStringWithoutZone(rowGeoLocalTime),
+                    lat: deviceLat.toFixed(4), lng: deviceLng.toFixed(4),
                     onlineHours: mockOnlineHours + ' h',
-                    runStatus: runStatus,
-                    installTime: installTime,
-                    fuelData: fuelBaseline + ' L',
-                    ef: emissionFactor + ' EF',
-                    charge: mockCharge + ' kWh',
-                    discharge: mockDischarge + ' kWh',
-                    selfUse: mockSelfUse + ' kWh',
-                    gridFeed: mockGridFeed + ' kWh',
-                    gridStatus: gridStatus,
-                    soc: mockSoc + ' %',
-                    quality: dataQuality
+                    runStatus: '<span class="text-success">正常运行</span>',
+                    installTime: '2025-08-12', fuelData: fuelBaseline + ' L', ef: '2.68 EF',
+                    charge: mockCharge + ' kWh', discharge: mockDischarge + ' kWh',
+                    selfUse: '0 kWh', gridFeed: '0 kWh', gridStatus: '<span class="text-danger">离网</span>',
+                    soc: mockSoc + ' %', quality: dataQuality
                 });
             }
             return logs;
@@ -393,26 +447,22 @@
             const end = start + pageSize;
             const pageData = generatedLogs.slice(start, end);
 
-            const tbody = document.getElementById('logTableBody');
-            tbody.innerHTML = pageData.map(log => `
+            document.getElementById('logTableBody').innerHTML = pageData.map(log => `
                 <tr>
                     <td style="font-weight:700;">${log.name}</td>
                     <td style="font-family:monospace; color:#aaa;">${log.sn}</td>
                     <td style="color:#00ffff; font-family:monospace;">${log.utcTime}</td>
                     <td style="color:#00ffa2; font-family:monospace; font-weight:500;">${log.localTime}</td>
-                    <td>${log.lat}</td>
-                    <td>${log.lng}</td>
+                    <td>${log.lat}</td><td>${log.lng}</td>
                     <td style="font-family:monospace; color:#fff;">${log.onlineHours}</td>
-                    <td>${log.runStatus}</td>
-                    <td style="color:#aaa;">${log.installTime}</td>
+                    <td>${log.runStatus}</td><td>${log.installTime}</td>
                     <td style="color:#f1c40f; font-family:monospace;">${log.fuelData}</td>
                     <td style="color:#00ffff; font-family:monospace;">${log.ef}</td>
                     <td style="color:#00ffa2; font-weight:600; font-family:monospace;">${log.charge}</td>
                     <td style="color:#00bbff; font-weight:600; font-family:monospace;">${log.discharge}</td>
                     <td style="font-family:monospace; color:rgba(255,255,255,0.4);">${log.selfUse}</td>
                     <td style="color:rgba(255,255,255,0.4); font-family:monospace;">${log.gridFeed}</td>
-                    <td>${log.gridStatus}</td>
-                    <td style="font-weight:600; color:#fff;">${log.soc}</td>
+                    <td>${log.gridStatus}</td><td style="font-weight:600; color:#fff;">${log.soc}</td>
                     <td>${log.quality}</td>
                 </tr>
             `).join('');
@@ -423,15 +473,15 @@
             document.getElementById('nextBtn').disabled = currentPage === totalPages;
         }
 
-        function changePage(direction) {
+        window.changePage = function(direction) {
             currentPage += direction;
             renderLogTable();
-        }
+        };
 
         window.onload = function() {
-            generatedLogs = generateMockLogs();
+            generatedLogs = generateLogsList();
             renderLogTable();
-            setTimeout(() => { map.invalidateSize(); }, 200);
+            setTimeout(() => { map.invalidateSize(); }, 250);
         };
     </script>
 </body>
