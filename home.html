@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Faith Technology - Global Fleet Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -142,9 +142,63 @@
         .text-danger { color: #ff3366 !important; font-weight: bold; }
         .text-success { color: #00ffa2 !important; }
         .text-warning { color: #f1c40f !important; }
+
+        /* ================= 移动端适配 CSS ================= */
+        .finance-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .mobile-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 90; backdrop-filter: blur(3px); }
+        .mobile-nav-toggle {
+            display: none; justify-content: space-between; align-items: center; padding: 12px 20px; 
+            background: rgba(10, 18, 38, 0.9); border: 1px solid rgba(0, 255, 255, 0.15); 
+            border-radius: 12px; margin-bottom: 20px; cursor: pointer; color: #fff;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        @media (max-width: 992px) {
+            .sidebar { transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+            .sidebar.mobile-open { transform: translateX(0); }
+            .mobile-overlay.active { display: block; }
+            .main-content { margin-left: 0; width: 100%; padding: 15px 10px; }
+            .mobile-nav-toggle { display: flex; }
+        }
+
+        @media (max-width: 768px) {
+            .header { flex-direction: column; align-items: flex-start; padding-bottom: 15px; }
+            .header-info { text-align: left; margin-top: 10px; }
+            .user-profile { justify-content: flex-start; }
+            .header-title h1 { font-size: 20px; }
+            
+            .section-header { flex-direction: column; align-items: flex-start; gap: 15px; }
+            
+            .search-wrapper { flex-direction: column; align-items: stretch; width: 100%; }
+            .search-input { width: 100%; }
+            .search-input:focus { width: 100%; }
+            .date-control, .select-control, .export-btn { max-width: 100%; width: 100%; margin-left: 0 !important; margin-top: 5px; }
+            .search-wrapper > span { margin-left: 0 !important; display: block; margin-top: 5px; }
+            
+            .summary-row { grid-template-columns: repeat(2, 1fr); }
+            .summary-row.quad { grid-template-columns: repeat(2, 1fr); }
+            .distribution-container { grid-template-columns: 1fr; gap: 15px; }
+            .hologram-box { height: 200px; }
+            
+            .finance-grid { grid-template-columns: 1fr; }
+            
+            .lease-form-box { flex-direction: column; align-items: stretch; gap: 10px; }
+            .form-group { min-width: 100%; }
+            .lease-btn { width: 100%; height: 45px; margin-top: 10px; }
+            
+            .pagination-container { flex-wrap: wrap; }
+            .panel { padding: 15px; }
+        }
+
+        @media (max-width: 480px) {
+            .summary-row { grid-template-columns: 1fr; }
+            .summary-row.quad { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
+    
+    <div class="mobile-overlay" id="mobileOverlay" onclick="toggleSidebar()"></div>
 
     <div class="sidebar">
         <div class="sidebar-brand">
@@ -165,6 +219,11 @@
 
     <div class="main-content">
         
+        <div class="mobile-nav-toggle" onclick="toggleSidebar()">
+            <span style="font-weight: 800; font-size: 18px; background: linear-gradient(90deg, #fff, #00ffff); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">FAITH TECH</span>
+            <span>☰ 菜单</span>
+        </div>
+
         <div class="header">
             <div class="header-title">
                 <h1 id="pageTitle">经销商资产数据总览</h1>
@@ -425,7 +484,7 @@
         <div id="sec-finance" class="page-section">
             <div class="panel">
                 <div class="section-header"><h2>财务结算总览审计中心</h2></div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div class="finance-grid">
                     <div class="metric-card">
                         <div class="metric-label">全辖区资产合同估值 (USD)</div>
                         <div class="metric-value" id="totalUsdSummary">$ 0.00</div>
@@ -530,6 +589,12 @@
 
         // 碳资产减排转换核心常数（Tons/kWh），与大区管理中心保持高一致性
         const CO2_FACTOR = 0.0006;
+
+        // 新增：侧边栏移动端切换逻辑
+        function toggleSidebar() {
+            document.querySelector('.sidebar').classList.toggle('mobile-open');
+            document.getElementById('mobileOverlay').classList.toggle('active');
+        }
 
         // 统一资产计价换算函数
         function calculateDeviceFinance(d) {
@@ -1062,6 +1127,12 @@
                 'carbon': '全球绿色能源碳减排碳资产统计看板'
             };
             document.getElementById('pageTitle').innerText = titles[targetTabId] || '云管理大屏';
+
+            // 移动端点击菜单后自动收起侧边栏
+            if (window.innerWidth <= 992) {
+                document.querySelector('.sidebar').classList.remove('mobile-open');
+                document.getElementById('mobileOverlay').classList.remove('active');
+            }
         }
 
         window.onload = function() {
