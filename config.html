@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>系统配置中心 - Faith Technology</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,22 +25,56 @@
         .page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 30px; padding-bottom: 15px; border-bottom: 1px solid rgba(0, 255, 255, 0.2); }
         .page-title h1 { font-size: 28px; font-weight: 800; background: linear-gradient(90deg, #fff, #00ffff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; cursor: pointer; }
         .device-context { font-size: 13px; color: #00ffff; margin-top: 5px; font-family: monospace; }
+        
+        .global-actions { display: flex; gap: 10px; }
         .btn { padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.3s; border: 1px solid transparent; }
         .btn-primary { background: rgba(0, 255, 255, 0.15); border-color: #00ffff; color: #00ffff; }
         .btn-primary:hover { background: #00ffff; color: #050816; }
         .btn-outline { background: transparent; border-color: rgba(255, 255, 255, 0.2); color: #fff; }
+        .btn-outline:hover { background: rgba(255, 255, 255, 0.1); }
+        
         .config-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
         .config-card { background: rgba(10, 18, 38, 0.6); border: 1px solid rgba(0, 255, 255, 0.1); backdrop-filter: blur(15px); border-radius: 16px; padding: 20px; transition: 0.3s; }
         .config-card:hover { border-color: rgba(0, 255, 255, 0.4); transform: translateY(-5px); }
         .config-label { font-size: 13px; color: rgba(255, 255, 255, 0.6); margin-bottom: 15px; display: flex; align-items: center; }
         .config-label::before { content: ''; width: 4px; height: 14px; background: #00ffff; margin-right: 8px; border-radius: 2px; }
+        
         .input-group { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
-        .adj-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1); background: rgba(255, 255, 255, 0.05); color: #fff; cursor: pointer; }
-        .val-input { flex: 1; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(0, 255, 255, 0.2); border-radius: 8px; color: #00ffff; text-align: center; height: 36px; font-weight: 700; outline: none; }
+        .adj-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1); background: rgba(255, 255, 255, 0.05); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        .adj-btn:active { background: rgba(0, 255, 255, 0.2); border-color: #00ffff; color: #00ffff; }
+        .val-input { flex: 1; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(0, 255, 255, 0.2); border-radius: 8px; color: #00ffff; text-align: center; height: 36px; font-weight: 700; outline: none; transition: 0.2s; }
+        .val-input:focus { border-color: #00ffff; box-shadow: 0 0 10px rgba(0,255,255,0.2); }
+        
         .card-actions { display: flex; justify-content: space-between; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 12px; }
-        .action-link { font-size: 12px; color: #6bb3a1; cursor: pointer; font-weight: 600; }
+        .action-link { font-size: 12px; color: #6bb3a1; cursor: pointer; font-weight: 600; padding: 4px 8px; margin: -4px -8px; border-radius: 4px; transition: 0.2s; }
+        .action-link:active { background: rgba(255,255,255,0.1); }
+        
         .group-title { grid-column: 1 / -1; font-size: 14px; color: #00ffa2; text-transform: uppercase; letter-spacing: 2px; margin: 20px 0 10px 0; display: flex; align-items: center; }
         .group-title::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(0, 255, 162, 0.2), transparent); margin-left: 15px; }
+
+        /* ================= 移动端适配 CSS ================= */
+        @media (max-width: 768px) {
+            body { padding: 15px; }
+            .page-header { flex-direction: column; align-items: flex-start; gap: 20px; }
+            .page-title h1 { font-size: 22px; line-height: 1.3; }
+            .device-context { font-size: 11px; word-break: break-all; }
+            
+            .global-actions { width: 100%; display: flex; gap: 10px; }
+            .global-actions .btn { flex: 1; text-align: center; padding: 12px 10px; }
+        }
+
+        @media (max-width: 480px) {
+            .config-grid { grid-template-columns: 1fr; gap: 15px; }
+            .config-card { padding: 15px; }
+            .group-title { font-size: 13px; margin: 10px 0 5px 0; }
+            
+            /* 触控优化：放大操作按钮和输入框尺寸 */
+            .adj-btn { width: 40px; height: 40px; font-size: 18px; }
+            .val-input { height: 40px; font-size: 15px; }
+            
+            .global-actions { flex-direction: column; }
+            .global-actions .btn { width: 100%; }
+        }
     </style>
 </head>
 <body>
