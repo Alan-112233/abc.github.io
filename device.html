@@ -104,7 +104,7 @@
         .stats-val { font-size: 26px; font-weight: 800; color: #fff; margin-top: auto; }
         .stats-val span { font-size: 14px; color: rgba(255,255,255,0.4); margin-left: 5px; }
 
-        .log-table-wrapper { width: 100%; overflow-x: auto; margin-top: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
+        .log-table-wrapper { width: 100%; overflow-x: auto; margin-top: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); -webkit-overflow-scrolling: touch; }
         .log-table { width: 100%; border-collapse: collapse; min-width: 1600px; font-size: 12px; text-align: left; }
         .log-table th { background: rgba(0, 255, 255, 0.06); color: #00ffff; padding: 12px 10px; font-weight: 600; border-bottom: 1px solid rgba(0,255,255,0.2); white-space: nowrap; }
         .log-table td { padding: 12px 10px; color: rgba(255,255,255,0.85); border-bottom: 1px solid rgba(255,255,255,0.05); white-space: nowrap; }
@@ -120,6 +120,45 @@
         .page-btn:hover:not(:disabled) { background: #00ffff; color: #050816; }
         .page-btn:disabled { opacity: 0.3; cursor: not-allowed; border-color: rgba(255,255,255,0.1); color: #fff; }
         .page-info { letter-spacing: 0.5px; }
+
+        /* ================= 移动端适配 CSS ================= */
+        @media (max-width: 992px) {
+            .device-monitor-full { grid-template-columns: repeat(4, 1fr); }
+            .stats-grid-tall { grid-template-columns: repeat(3, 1fr); }
+        }
+
+        @media (max-width: 768px) {
+            .header { flex-direction: column; align-items: flex-start; gap: 15px; padding: 10px; }
+            .header-left h1 { font-size: 20px; }
+            .header-left-box { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .header-right { text-align: left; margin-top: 5px; }
+            
+            .mid-row-grid { grid-template-columns: 1fr; }
+            
+            .countdown-container { height: auto; padding: 20px 0; gap: 15px; }
+            .countdown-circle { width: 110px; height: 110px; }
+            .countdown-time { font-size: 20px; }
+            .countdown-circle::before { inset: -3px; border-width: 3px; }
+            
+            .stats-grid-tall { grid-template-columns: repeat(2, 1fr); }
+            
+            .pagination-bar { flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+        }
+
+        @media (max-width: 480px) {
+            .panel { padding: 15px; }
+            .device-monitor-full { grid-template-columns: repeat(2, 1fr); }
+            .stats-grid-tall { grid-template-columns: 1fr 1fr; }
+            
+            .countdown-container { flex-wrap: wrap; gap: 10px; }
+            .countdown-circle { width: 95px; height: 95px; }
+            .countdown-time { font-size: 16px; }
+            .countdown-circle::before { inset: -2px; border-width: 2px; }
+            
+            .stats-item { padding: 12px; height: 110px; }
+            .stats-val { font-size: 18px; margin-top: 8px; }
+            .stats-val span { font-size: 12px; }
+        }
     </style>
 </head>
 <body>
