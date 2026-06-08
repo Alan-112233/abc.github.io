@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Faith Technology - 大区商核心管理中心</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -37,7 +37,7 @@
         .menu-item .icon { margin-right: 12px; font-size: 16px; }
 
         /* 主内容区样式 */
-        .main-content { margin-left: 260px; flex: 1; padding: 25px 30px; display: flex; flex-direction: column; }
+        .main-content { margin-left: 260px; flex: 1; padding: 25px 30px; display: flex; flex-direction: column; width: calc(100% - 260px); }
         .panel { background: rgba(7, 12, 36, 0.75); border: 1px solid rgba(0, 255, 255, 0.15); backdrop-filter: blur(20px); border-radius: 20px; padding: 24px; margin-bottom: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
         .header { display: flex; justify-content: space-between; align-items: flex-end; padding: 0 10px 25px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 25px; }
         .header-title h1 { font-size: 24px; font-weight: 800; color: #fff; }
@@ -47,7 +47,7 @@
         .user-profile { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; justify-content: flex-end; }
         .user-avatar { width: 8px; height: 8px; background-color: #00ffff; border-radius: 50%; box-shadow: 0 0 8px #00ffff; }
         .user-name { color: #fff; font-weight: 700; }
-        .back-btn { color: rgba(255, 255, 255, 0.4); font-size: 12px; text-decoration: none; margin-left: 12px; padding: 3px 8px; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; transition: 0.2s; }
+        .back-btn { color: rgba(255, 255, 255, 0.4); font-size: 12px; text-decoration: none; margin-left: 12px; padding: 3px 8px; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; transition: 0.2s; display: inline-block; }
         .back-btn:hover { color: #fff; background: rgba(255,255,255,0.1); border-color: #fff; }
 
         .section-header { margin-bottom: 20px; border-left: 4px solid #00ffff; padding-left: 15px; display: flex; justify-content: space-between; align-items: center; }
@@ -66,10 +66,23 @@
         .row-pv .metric-card { border-left-color: #00ffa2; color: #00ffa2; }
         .row-usage .metric-card { border-left-color: #00ffff; color: #00ffff; }
 
-        /* 表格样式 */
-        table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; padding: 12px 14px; font-size: 13px; color: rgba(255,255,255,0.4); border-bottom: 1px solid rgba(0, 255, 255, 0.15); background: rgba(0, 255, 255, 0.01); }
-        td { padding: 12px 14px; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.04); color: #ddd; }
+        /* 横向滚动表格机制 */
+        .table-responsive {
+            width: 100%; 
+            overflow-x: auto; 
+            -webkit-overflow-scrolling: touch; 
+            border: 1px solid rgba(0, 255, 255, 0.15); 
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.1);
+            margin-bottom: 10px;
+        }
+        .table-responsive::-webkit-scrollbar { height: 10px; }
+        .table-responsive::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); border-radius: 5px; }
+        .table-responsive::-webkit-scrollbar-thumb { background: rgba(0,255,255,0.4); border-radius: 5px; }
+
+        table { width: 100%; border-collapse: collapse; min-width: max-content; }
+        th { text-align: left; padding: 12px 14px; font-size: 13px; color: rgba(255,255,255,0.4); border-bottom: 1px solid rgba(0, 255, 255, 0.15); background: rgba(0, 255, 255, 0.01); white-space: nowrap; }
+        td { padding: 12px 14px; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.04); color: #ddd; white-space: nowrap; }
         tr:hover td { background: rgba(0, 255, 255, 0.03); }
         
         .page-section { display: none; }
@@ -77,22 +90,61 @@
         .level-badge { padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
 
         /* 筛选高亮条 */
-        .filter-status-bar { background: rgba(0, 255, 255, 0.06); border: 1px dashed rgba(0, 255, 255, 0.3); border-radius: 8px; padding: 8px 14px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
-        .clear-filter-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+        .filter-status-bar { background: rgba(0, 255, 255, 0.06); border: 1px dashed rgba(0, 255, 255, 0.3); border-radius: 8px; padding: 8px 14px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; flex-wrap: wrap; gap: 10px; }
+        .clear-filter-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
         .clear-filter-btn:hover { background: rgba(255, 51, 102, 0.2); border-color: #ff3366; color: #ff3366; }
 
         /* 租赁下发窗口表单样式 */
         .lease-form-box { display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; background: rgba(0, 255, 255, 0.03); border: 1px dashed rgba(0, 255, 255, 0.2); padding: 18px; border-radius: 12px; margin-bottom: 25px; }
         .form-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 180px; }
         .form-group label { font-size: 12px; color: rgba(255,255,255,0.5); font-weight: 500; }
-        .form-control { background: #070c24; border: 1px solid rgba(0,255,255,0.2); border-radius: 6px; padding: 10px 12px; color: #fff; font-size: 13px; font-family: inherit; outline: none; transition: 0.2s; }
+        .form-control { background: #070c24; border: 1px solid rgba(0,255,255,0.2); border-radius: 6px; padding: 10px 12px; color: #fff; font-size: 13px; font-family: inherit; outline: none; transition: 0.2s; width: 100%; }
         .form-control:focus { border-color: #00ffff; box-shadow: 0 0 8px rgba(0,255,255,0.2); }
         .form-control:disabled { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.05); color: rgba(255,255,255,0.3); cursor: not-allowed; box-shadow: none; }
         .lease-btn { background: linear-gradient(90deg, #00ffff, #00ffa2); border: none; color: #05091a; padding: 11px 24px; font-size: 13px; font-weight: 700; border-radius: 6px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 15px rgba(0,255,255,0.2); height: 40px; }
         .lease-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,255,255,0.4); }
+
+        /* ================= 移动端适配 CSS ================= */
+        .mobile-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 90; backdrop-filter: blur(3px); }
+        .mobile-nav-toggle {
+            display: none; justify-content: space-between; align-items: center; padding: 12px 20px; 
+            background: rgba(10, 18, 38, 0.9); border: 1px solid rgba(0, 255, 255, 0.15); 
+            border-radius: 12px; margin-bottom: 20px; cursor: pointer; color: #fff;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        @media (max-width: 992px) {
+            .sidebar { transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+            .sidebar.mobile-open { transform: translateX(0); }
+            .mobile-overlay.active { display: block; }
+            .main-content { margin-left: 0; width: 100%; padding: 15px 10px; }
+            .mobile-nav-toggle { display: flex; }
+            .summary-row, .summary-row.quad { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 768px) {
+            .header { flex-direction: column; align-items: flex-start; padding-bottom: 15px; }
+            .header-info { text-align: left; margin-top: 15px; }
+            .user-profile { justify-content: flex-start; }
+            .header-title h1 { font-size: 20px; }
+            
+            .lease-form-box { flex-direction: column; align-items: stretch; gap: 10px; }
+            .form-group { min-width: 100%; }
+            .lease-btn { width: 100%; height: 45px; margin-top: 10px; }
+            
+            .filter-status-bar { flex-direction: column; align-items: flex-start; }
+            .clear-filter-btn { width: 100%; text-align: center; margin-top: 8px; }
+            .panel { padding: 15px; }
+        }
+
+        @media (max-width: 480px) {
+            .summary-row, .summary-row.quad { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
+
+    <div class="mobile-overlay" id="mobileOverlay" onclick="toggleSidebar()"></div>
 
     <div class="sidebar">
         <div class="sidebar-brand">
@@ -112,6 +164,11 @@
 
     <div class="main-content">
         
+        <div class="mobile-nav-toggle" onclick="toggleSidebar()">
+            <span style="font-weight: 800; font-size: 16px; background: linear-gradient(90deg, #fff, #00ffff); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">FAITH TECH - DEALER</span>
+            <span>☰ 菜单</span>
+        </div>
+
         <div class="header">
             <div class="header-title">
                 <h1 id="pageTitle">网点用电资产总览</h1>
@@ -154,7 +211,7 @@
                         </div>
                         <div class="metric-card" style="border-left-color: #ff3366; color: #ff3366;">
                             <div class="metric-label">当前范围内受控运行资产</div>
-                            <div class="metric-value" id="o-device-count">42<span>UNITS</span></div>
+                            <div class="metric-value" id="o-device-count">0<span>UNITS</span></div>
                         </div>
                     </div>
                 </div>
@@ -164,59 +221,65 @@
         <div id="sec-subdealers" class="page-section">
             <div class="panel">
                 <div class="section-header"><h2>大区管辖下的二级加盟商网络</h2></div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>网点级别</th>
-                            <th>网点名称</th>
-                            <th>管理账号</th>
-                            <th>覆盖地理位置</th>
-                            <th>在籍设备数量</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="subDealerTableBody"></tbody>
-                </table>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>网点级别</th>
+                                <th>网点名称</th>
+                                <th>管理账号</th>
+                                <th>覆盖地理位置</th>
+                                <th>在籍设备数量</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="subDealerTableBody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
         <div id="sec-devices" class="page-section">
             <div class="panel">
                 <div class="section-header"><h2>受控资产设备全量明细总表</h2></div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>设备名称</th>
-                            <th>产品编号 (SN)</th>
-                            <th>分配卡种</th>
-                            <th>部署位置</th>
-                            <th>运行状态</th>
-                            <th>电池电量 (SOC)</th>
-                            <th>电芯健康度 (SOH)</th>
-                            <th>动作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="deviceTableBody"></tbody>
-                </table>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>设备名称</th>
+                                <th>产品编号 (SN)</th>
+                                <th>分配卡种</th>
+                                <th>部署位置</th>
+                                <th>运行状态</th>
+                                <th>电池电量 (SOC)</th>
+                                <th>电芯健康度 (SOH)</th>
+                                <th>动作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="deviceTableBody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
         <div id="sec-geofence" class="page-section">
             <div class="panel">
                 <div class="section-header"><h2>安全资产围栏防盗追踪</h2></div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>设备名称</th>
-                            <th>产品编号 (SN)</th>
-                            <th>部署所属区域</th>
-                            <th>实时高精经度</th>
-                            <th>实时高精纬度</th>
-                            <th>安全围栏状态</th>
-                        </tr>
-                    </thead>
-                    <tbody id="geofenceTableBody"></tbody>
-                </table>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>设备名称</th>
+                                <th>产品编号 (SN)</th>
+                                <th>部署所属区域</th>
+                                <th>实时高精经度</th>
+                                <th>实时高精纬度</th>
+                                <th>安全围栏状态</th>
+                            </tr>
+                        </thead>
+                        <tbody id="geofenceTableBody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -250,18 +313,20 @@
 
             <div class="panel">
                 <div class="section-header"><h2>PAYG 智能合约租赁到期清算矩阵</h2></div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>设备名称</th>
-                            <th>产品编号 (SN)</th>
-                            <th>绑定合约卡种</th>
-                            <th>租金实收流水</th>
-                            <th>到期计费剩余时间</th>
-                        </tr>
-                    </thead>
-                    <tbody id="leasingTableBody"></tbody>
-                </table>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>设备名称</th>
+                                <th>产品编号 (SN)</th>
+                                <th>绑定合约卡种</th>
+                                <th>租金实收流水</th>
+                                <th>到期计费剩余时间</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leasingTableBody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -278,18 +343,20 @@
             </div>
             <div class="panel">
                 <div class="section-header"><h2>单机账目营收细则 (基于国际美金清算)</h2></div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>账目绑定设备</th>
-                            <th>产品编号 (SN)</th>
-                            <th>实收流水金额 (CNY)</th>
-                            <th>折算国际美金 (USD)</th>
-                            <th>清算网关状态</th>
-                        </tr>
-                    </thead>
-                    <tbody id="financeTableBody"></tbody>
-                </table>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>账目绑定设备</th>
+                                <th>产品编号 (SN)</th>
+                                <th>实收流水金额 (CNY)</th>
+                                <th>折算国际美金 (USD)</th>
+                                <th>清算网关状态</th>
+                            </tr>
+                        </thead>
+                        <tbody id="financeTableBody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -297,7 +364,7 @@
             <div class="panel">
                 <div class="section-header"><h2>绿色能源减排追踪面板 (放电量测算标准：1000度电 = 0.6吨 carbon 减排)</h2></div>
                 <div class="summary-grid" style="margin-bottom: 20px;">
-                    <div class="summary-row quad row-carbon" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
+                    <div class="summary-row quad row-carbon">
                         <div class="metric-card" style="border-left-color: #2ecc71; color: #2ecc71;"><div class="metric-label">受控范围今日总放电量</div><div class="metric-value" id="c-load-day">0.00<span>kWh</span></div></div>
                         <div class="metric-card" style="border-left-color: #2ecc71; color: #2ecc71;"><div class="metric-label">受控范围今日碳减排量</div><div class="metric-value" id="c-carbon-day">0.0000<span>Tons</span></div></div>
                         <div class="metric-card" style="border-left-color: #2ecc71; color: #2ecc71;"><div class="metric-label">受控范围月累计碳减排</div><div class="metric-value" id="c-carbon-mon">0.00<span>Tons</span></div></div>
@@ -307,19 +374,21 @@
             </div>
             <div class="panel">
                 <div class="section-header"><h2>终端单机放电碳减排联动审计明细 (数字锁定小数点后两位)</h2></div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>设备名称</th>
-                            <th>产品编号 (SN)</th>
-                            <th>单机今日放电量</th>
-                            <th>今日碳减排 (高精)</th>
-                            <th>月度放电量</th>
-                            <th>月度碳减排</th>
-                        </tr>
-                    </thead>
-                    <tbody id="carbonTableBody"></tbody>
-                </table>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>设备名称</th>
+                                <th>产品编号 (SN)</th>
+                                <th>单机今日放电量</th>
+                                <th>今日碳减排 (高精)</th>
+                                <th>月度放电量</th>
+                                <th>月度碳减排</th>
+                            </tr>
+                        </thead>
+                        <tbody id="carbonTableBody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -331,6 +400,12 @@
         let masterDealerId = params.get('id') || 'M001';
         const currentMaster = DealerDB.find(o => o.id === masterDealerId);
         let selectedSubDealerId = null;
+
+        // 侧边栏移动端切换逻辑
+        function toggleSidebar() {
+            document.querySelector('.sidebar').classList.toggle('mobile-open');
+            document.getElementById('mobileOverlay').classList.toggle('active');
+        }
 
         // Tab 页签控制
         let currentTab = 'overview';
@@ -353,6 +428,12 @@
                 'carbon': '大区分布式绿色电力碳足迹追踪审计'
             };
             document.getElementById('pageTitle').innerText = titles[targetTabId] || '云管理大屏';
+
+            // 移动端点击菜单后自动收起
+            if (window.innerWidth <= 992) {
+                document.querySelector('.sidebar').classList.remove('mobile-open');
+                document.getElementById('mobileOverlay').classList.remove('active');
+            }
         }
 
         // 设备过滤器切换
@@ -393,30 +474,50 @@
                 filteredDevices = filteredDevices.filter(d => d.belongDealerId === selectedSubDealerId);
             }
 
-            // 计算核心大区微网实时及累计数据
+            // 计算核心大区微网实时及累计数据 - 修复 NaN 问题，添加了安全转换 fallback
             let finalPvRt = 0, finalPvDay = 0, finalPvMon = 0, finalPvYr = 0;
             let finalLoadRt = 0, finalLoadDay = 0, finalLoadMon = 0, finalLoadYr = 0;
             let finalFinance = 0;
             let carbonToday = 0, carbonMon = 0, carbonTotal = 0;
 
             filteredDevices.forEach(d => {
-                finalPvRt += d.pv_p; finalPvDay += d.pv_day; finalPvMon += d.pv_mon; finalPvYr += d.pv_yr;
-                finalLoadRt += (d.ac_p + d.dc_p); finalLoadDay += d.load_day; finalLoadMon += d.load_mon; finalLoadYr += d.load_yr;
+                // 安全解析数值，防止未定义属性引起的 NaN
+                let sPvRt = parseFloat(d.pv_in || d.pv_p || 0);
+                let sPvDay = parseFloat(d.pv_day || 0);
+                let sPvMon = parseFloat(d.pv_mon || 0);
+                let sPvYr = parseFloat(d.pv_yr || 0);
+
+                let sAc = parseFloat(d.ac_p || 0);
+                let sDc = parseFloat(d.dc_p || 0);
+                let sLoadDay = parseFloat(d.load_day || 0);
+                let sLoadMon = parseFloat(d.load_mon || 0);
+                let sLoadYr = parseFloat(d.load_yr || 0);
+
+                finalPvRt += sPvRt;
+                finalPvDay += sPvDay;
+                finalPvMon += sPvMon;
+                finalPvYr += sPvYr;
+
+                finalLoadRt += (sAc + sDc);
+                finalLoadDay += sLoadDay;
+                finalLoadMon += sLoadMon;
+                finalLoadYr += sLoadYr;
                 
                 let rate = d.leaseType === 'Yearly' ? 55 : (d.leaseType === 'Quarterly' ? 14 : 5);
                 finalFinance += rate;
-                carbonToday += d.load_day * 0.0006;
-                carbonMon += d.load_mon * 0.0006;
-                carbonTotal += d.load_yr * 0.0006;
+
+                carbonToday += sLoadDay * 0.0006;
+                carbonMon += sLoadMon * 0.0006;
+                carbonTotal += sLoadYr * 0.0006;
             });
 
             // 渲染模块1：实时微电网多维统计核心看板
             const statsData = [
-                { e: 'REGIONAL PV REALTIME', l: '大区PV实时发电机组总功率', v: finalPvRt, u: 'W', t: 'pv' },
+                { e: 'REGIONAL PV REALTIME', l: '大区PV实时发电机组总功率', v: finalPvRt.toFixed(0), u: 'W', t: 'pv' },
                 { e: 'REGIONAL PV DAILY', l: '大区PV今日累计发电总量', v: finalPvDay.toFixed(2), u: 'kWh', t: 'pv' },
                 { e: 'REGIONAL PV MONTHLY', l: '大区PV当月合并发电总量', v: finalPvMon.toFixed(2), u: 'kWh', t: 'pv' },
                 { e: 'REGIONAL PV ANNUAL', l: '大区PV全年在籍累计发电量', v: finalPvYr.toFixed(2), u: 'kWh', t: 'pv' },
-                { e: 'REGIONAL REALTIME LOAD', l: '大区负载侧实时运行总功率', v: finalLoadRt, u: 'W', t: 'usage' },
+                { e: 'REGIONAL REALTIME LOAD', l: '大区负载侧实时运行总功率', v: finalLoadRt.toFixed(0), u: 'W', t: 'usage' },
                 { e: 'REGIONAL LOAD DAILY', l: '大区日累计放电/耗电总量', v: finalLoadDay.toFixed(2), u: 'kWh', t: 'usage' },
                 { e: 'REGIONAL LOAD MONTHLY', l: '大区月度累计合并耗电量', v: finalLoadMon.toFixed(2), u: 'kWh', t: 'usage' },
                 { e: 'REGIONAL LOAD ANNUAL', l: '大区年度累计在籍总耗电量', v: finalLoadYr.toFixed(2), u: 'kWh', t: 'usage' }
@@ -454,30 +555,36 @@
             }).join('');
 
             // 渲染模块3：全量资产设备明细列表
-            document.getElementById('deviceTableBody').innerHTML = filteredDevices.map(d => `
+            document.getElementById('deviceTableBody').innerHTML = filteredDevices.map(d => {
+                let sSoc = parseFloat(d.soc || 0);
+                let sSoh = parseFloat(d.soh || 99);
+                return `
                 <tr>
                     <td style="font-weight:700; color:#fff;">${d.name}</td>
                     <td style="font-family:monospace; color:#aaa;">${d.sn}</td>
                     <td><span class="level-badge" style="background:rgba(241,196,15,0.1); color:#f1c40f; border:1px solid rgba(241,196,15,0.3);">${d.leaseType} PAYG</span></td>
                     <td>${d.location}</td>
                     <td><span style="color:#00ffa2;">● 正常实时并网</span></td>
-                    <td style="font-weight:700; font-family:monospace; color:#00ffff;">${d.soc} %</td>
-                    <td style="font-weight:500; font-family:monospace; color:#00ffa2;">${d.soh} %</td>
+                    <td style="font-weight:700; font-family:monospace; color:#00ffff;">${sSoc} %</td>
+                    <td style="font-weight:500; font-family:monospace; color:#00ffa2;">${sSoh} %</td>
                     <td><button class="clear-filter-btn" style="border-color:#00ffa2; color:#00ffa2;" onclick="location.href='device.html?sn=${d.sn}'">📊 深入核心遥测</button></td>
                 </tr>
-            `).join('');
+            `}).join('');
 
             // 渲染模块4：高精地理围栏监测明细列表
-            document.getElementById('geofenceTableBody').innerHTML = filteredDevices.map(d => `
+            document.getElementById('geofenceTableBody').innerHTML = filteredDevices.map(d => {
+                let sLng = parseFloat(d.lng || 0).toFixed(5);
+                let sLat = parseFloat(d.lat || 0).toFixed(5);
+                return `
                 <tr>
                     <td style="font-weight:700; color:#fff;">${d.name}</td>
                     <td style="font-family:monospace; color:#aaa;">${d.sn}</td>
                     <td>${d.location}</td>
-                    <td style="font-family:monospace; color:#00ffff;">${parseFloat(d.lng).toFixed(5)}</td>
-                    <td style="font-family:monospace; color:#00ffff;">${parseFloat(d.lat).toFixed(5)}</td>
+                    <td style="font-family:monospace; color:#00ffff;">${sLng}</td>
+                    <td style="font-family:monospace; color:#00ffff;">${sLat}</td>
                     <td><span style="color:#00ffa2; font-weight:600; background:rgba(0,255,162,0.08); padding:3px 8px; border-radius:4px; border:1px solid rgba(0,255,162,0.2);">🔒 围栏内安全运行</span></td>
                 </tr>
-            `).join('');
+            `}).join('');
 
             // 渲染模块5：PAYG 智能锁到期矩阵与分配中心
             document.getElementById('leasingTableBody').innerHTML = filteredDevices.map(d => {
@@ -488,7 +595,7 @@
                         <td style="font-family:monospace; color:#00ffff;">${d.sn}</td>
                         <td><span style="color:#f1c40f; font-weight:600;">${d.leaseType} Contract</span></td>
                         <td style="color:#00ffa2; font-weight:700; font-family:monospace;">$ ${fee.toFixed(2)} USD</td>
-                        <td style="font-family:monospace; font-weight:500; color:#fff;">⏳ 剩 ${d.leaseRemain}</td>
+                        <td style="font-family:monospace; font-weight:500; color:#fff;">⏳ 剩 ${d.leaseRemain || '0 天'}</td>
                     </tr>
                 `;
             }).join('');
@@ -518,8 +625,8 @@
             document.getElementById('c-carbon-total').innerHTML = `${carbonTotal.toFixed(2)}<span>Tons</span>`;
 
             document.getElementById('carbonTableBody').innerHTML = filteredDevices.map(d => {
-                const sLoadDay = d.load_day;
-                const sLoadMon = d.load_mon;
+                let sLoadDay = parseFloat(d.load_day || 0);
+                let sLoadMon = parseFloat(d.load_mon || 0);
                 return `
                     <tr>
                         <td style="font-weight:700; color:#fff;">${d.name}</td>
@@ -550,7 +657,7 @@
             const target = DeviceDB.find(d => d.sn === snVal);
             if(target) {
                 document.getElementById('leaseDeviceName').value = target.name;
-                document.getElementById('leaseNewLoc').value = target.location;
+                document.getElementById('leaseNewLoc').value = target.location || '';
                 document.getElementById('leaseNewLoc').disabled = true;
             }
         }
